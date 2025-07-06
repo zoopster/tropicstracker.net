@@ -1,0 +1,239 @@
+# TropicsTracker.net - GitIgnore File
+# Keeps sensitive information and API keys safe
+
+# ==============================================================================
+# SECURITY - API Keys and Secrets
+# ==============================================================================
+
+# Configuration files with actual API keys
+config.js
+config-production.js
+config-development.js
+config-local.js
+.env
+.env.local
+.env.development
+.env.production
+.env.staging
+
+# Secret files
+secrets/
+keys/
+credentials/
+*.key
+*.pem
+*.p12
+*.pfx
+
+# API key files
+api-keys.json
+api-keys.txt
+weather-api-keys.js
+mapbox-token.txt
+openweather-key.txt
+
+# ==============================================================================
+# DEVELOPMENT FILES
+# ==============================================================================
+
+# Node.js dependencies (if using build tools)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Build outputs
+dist/
+build/
+public/build/
+.cache/
+
+# Development tools
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ==============================================================================
+# LOGS AND DEBUGGING
+# ==============================================================================
+
+# Log files
+logs/
+*.log
+debug.log
+error.log
+access.log
+weather-data.log
+
+# Debug files
+debug/
+.debug/
+*.debug
+
+# ==============================================================================
+# TEMPORARY FILES
+# ==============================================================================
+
+# Temporary files
+tmp/
+temp/
+cache/
+.tmp/
+.temp/
+.cache/
+
+# Backup files
+*.bak
+*.backup
+*.old
+*_backup
+*_old
+
+# ==============================================================================
+# OPERATING SYSTEM FILES
+# ==============================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.tmp
+*.temp
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.nfs*
+
+# ==============================================================================
+# WEATHER DATA CACHE
+# ==============================================================================
+
+# Cached weather data (can be large)
+weather-cache/
+storm-data-cache/
+satellite-images/
+radar-cache/
+model-data/
+*.cache
+
+# Downloaded weather files
+*.grib
+*.grib2
+*.nc
+*.hdf
+*.zip
+weather-downloads/
+
+# ==============================================================================
+# ANALYTICS AND TRACKING
+# ==============================================================================
+
+# Analytics configuration
+analytics-config.js
+google-analytics.js
+tracking-config.js
+
+# User data
+user-preferences.json
+session-data/
+analytics-data/
+
+# ==============================================================================
+# DEPLOYMENT FILES
+# ==============================================================================
+
+# Deployment scripts with sensitive info
+deploy.sh
+deploy-prod.sh
+deploy-staging.sh
+.deploy/
+
+# Docker files with secrets
+docker-compose.prod.yml
+docker-compose.local.yml
+.dockerignore
+
+# Server configuration
+nginx.conf
+apache.conf
+.htaccess
+server-config/
+
+# SSL certificates
+ssl/
+certificates/
+*.crt
+*.cert
+
+# ==============================================================================
+# TESTING
+# ==============================================================================
+
+# Test coverage
+coverage/
+.nyc_output/
+.coverage
+htmlcov/
+
+# Test results
+test-results/
+junit.xml
+test-report.html
+
+# ==============================================================================
+# MISC
+# ==============================================================================
+
+# Editor files
+*.sublime-project
+*.sublime-workspace
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Database files (if any)
+*.db
+*.sqlite
+*.sqlite3
+
+# ==============================================================================
+# KEEP THIS FILE UPDATED
+# ==============================================================================
+# Always review and update this .gitignore when:
+# 1. Adding new API integrations
+# 2. Adding new configuration files  
+# 3. Adding new development tools
+# 4. Adding new caching mechanisms
+#
+# Remember: It's better to be overly cautious with sensitive data!
+# ==============================================================================

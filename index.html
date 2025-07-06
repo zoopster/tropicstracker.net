@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TropicsTracker.net - Global Tropical Weather Tracking</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            color: #f8fafc;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            border-bottom: 2px solid #3b82f6;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #60a5fa;
+        }
+
+        .logo i {
+            font-size: 2rem;
+            background: linear-gradient(45deg, #3b82f6, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: spin 10s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-tab {
+            padding: 0.75rem 1.5rem;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid #3b82f6;
+            border-radius: 8px;
+            color: #60a5fa;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-tab:hover, .nav-tab.active {
+            background: #3b82f6;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 2rem;
+            min-height: calc(100vh - 120px);
+        }
+
+        .map-section {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #334155;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .map-controls {
+            background: rgba(30, 41, 59, 0.95);
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #475569;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .control-btn {
+            padding: 0.5rem 1rem;
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid #3b82f6;
+            border-radius: 6px;
+            color: #60a5fa;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .control-btn:hover, .control-btn.active {
+            background: #3b82f6;
+            color: white;
+        }
+
+        #map {
+            height: 600px;
+            width: 100%;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .info-panel {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid #334155;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #475569;
+        }
+
+        .panel-header h3 {
+            color: #60a5fa;
+            font-size: 1.2rem;
+        }
+
+        .panel-header i {
+            color: #3b82f6;
+            font-size: 1.3rem;
+        }
+
+        .storm-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .storm-item {
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid #475569;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .storm-item:hover {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+        }
+
+        .storm-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .storm-name {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #f1f5f9;
+        }
+
+        .storm-category {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .cat-1 { background: #fbbf24; color: #78350f; }
+        .cat-2 { background: #f97316; color: #9a3412; }
+        .cat-3 { background: #ef4444; color: #991b1b; }
+        .cat-4 { background: #dc2626; color: #7f1d1d; }
+        .cat-5 { background: #7c2d12; color: #fef7ff; }
+        .tropical-storm { background: #06b6d4; color: #164e63; }
+        .tropical-depression { background: #64748b; color: #1e293b; }
+
+        .storm-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: #cbd5e1;
+        }
+
+        .forecast-models {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .model-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: rgba(30, 41, 59, 0.4);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            border: 1px solid #475569;
+        }
+
+        .model-name {
+            font-weight: 500;
+            color: #f1f5f9;
+        }
+
+        .model-accuracy {
+            background: #059669;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+
+        .alerts-section {
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .alert-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .alert-title {
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .alert-time {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .status-indicators {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .status-card {
+            background: rgba(30, 41, 59, 0.6);
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #475569;
+        }
+
+        .status-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #60a5fa;
+            margin-bottom: 0.25rem;
+        }
+
+        .status-label {
+            font-size: 0.85rem;
+            color: #cbd5e1;
+        }
+
+        .content-section {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .educational-content {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid #334155;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .edu-section {
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #475569;
+        }
+
+        .edu-section h2 {
+            color: #60a5fa;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .edu-section p {
+            color: #cbd5e1;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .hurricane-scale {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .scale-item {
+            background: rgba(30, 41, 59, 0.6);
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid #475569;
+        }
+
+        .scale-category {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .scale-winds {
+            color: #60a5fa;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: #60a5fa;
+            font-size: 1.1rem;
+        }
+
+        .loading i {
+            margin-right: 0.5rem;
+            animation: spin 1s linear infinite;
+        }
+
+        @media (max-width: 1024px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .nav-tabs {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 1rem;
+            }
+            
+            .header {
+                padding: 1rem;
+            }
+            
+            .nav-tab {
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
+            }
+            
+            #map {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-globe-americas"></i>
+                <span>TropicsTracker.net</span>
+            </div>
+            <nav class="nav-tabs">
+                <div class="nav-tab active" data-section="tracking">
+                    <i class="fas fa-map-marked-alt"></i> Live Tracking
+                </div>
+                <div class="nav-tab" data-section="basins">
+                    <i class="fas fa-globe"></i> Basins
+                </div>
+                <div class="nav-tab" data-section="forecasts">
+                    <i class="fas fa-chart-line"></i> Models
+                </div>
+                <div class="nav-tab" data-section="education">
+                    <i class="fas fa-graduation-cap"></i> Learn
+                </div>
+                <div class="nav-tab" data-section="alerts">
+                    <i class="fas fa-exclamation-triangle"></i> Alerts
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <!-- Live Tracking Section -->
+        <div class="content-section active" id="tracking">
+            <div class="map-section">
+                <div class="map-controls">
+                    <div class="control-group">
+                        <div class="control-btn active" data-layer="satellite">Satellite</div>
+                        <div class="control-btn" data-layer="radar">Radar</div>
+                        <div class="control-btn" data-layer="wind">Wind Speed</div>
+                        <div class="control-btn" data-layer="pressure">Pressure</div>
+                        <div class="control-btn" data-layer="sst">Sea Temp</div>
+                    </div>
+                    <div class="control-group">
+                        <div class="control-btn" data-action="refresh">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </div>
+                        <div class="control-btn" data-action="fullscreen">
+                            <i class="fas fa-expand"></i> Fullscreen
+                        </div>
+                    </div>
+                </div>
+                <div id="map"></div>
+            </div>
+        </div>
+
+        <!-- Basins Section -->
+        <div class="content-section" id="basins">
+            <div class="educational-content">
+                <h2><i class="fas fa-globe"></i> Global Tropical Basins</h2>
+                <div class="hurricane-scale">
+                    <div class="scale-item">
+                        <div class="scale-category">Atlantic Basin</div>
+                        <div class="scale-winds">North Atlantic Ocean</div>
+                        <p>Includes Gulf of Mexico and Caribbean Sea. Season: June 1 - November 30</p>
+                        <div class="control-btn" data-basin="atlantic">View Basin</div>
+                    </div>
+                    <div class="scale-item">
+                        <div class="scale-category">Eastern Pacific</div>
+                        <div class="scale-winds">East Pacific Ocean</div>
+                        <p>Eastern North Pacific. Season: May 15 - November 30</p>
+                        <div class="control-btn" data-basin="epac">View Basin</div>
+                    </div>
+                    <div class="scale-item">
+                        <div class="scale-category">Western Pacific</div>
+                        <div class="scale-winds">Northwest Pacific Ocean</div>
+                        <p>Most active basin globally. Year-round activity</p>
+                        <div class="control-btn" data-basin="wpac">View Basin</div>
+                    </div>
+                    <div class="scale-item">
+                        <div class="scale-category">North Indian Ocean</div>
+                        <div class="scale-winds">Bay of Bengal & Arabian Sea</div>
+                        <p>Pre-monsoon and post-monsoon seasons</p>
+                        <div class="control-btn" data-basin="nio">View Basin</div>
+                    </div>
+                    <div class="scale-item">
+                        <div class="scale-category">South Indian Ocean</div>
+                        <div class="scale-winds">South of equator</div>
+                        <p>Season: November - April</p>
+                        <div class="control-btn" data-basin="sio">View Basin</div>
+                    </div>
+                    <div class="scale-item">
+                        <div class="scale-category">South Pacific</div>
+                        <div class="scale-winds">South Pacific Ocean</div>
+                        <p>Season: November - April</p>
+                        <div class="control-btn" data-basin="spc">View Basin</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Forecasts Section -->
+        <div class="content-section" id="forecasts">
+            <div class="educational-content">
+                <h2><i class="fas fa-chart-line"></i> Forecast Models & Predictions</h2>
+                <div class="hurricane-scale">
+                    <div class="scale-item">
+                        <div class="scale-category">GFS Model</div>
+                        <div class="scale-winds">Global Forecast System</div>
+                        <p>NOAA's primary global weather model with 16-day forecasts</p>
+                    </div>
+                    <div class="scale-item">
+                        <div class="scale-category">ECMWF Model</div>
+                        <div class="scale-winds">European Model</div>
+                        <p>High-resolution European weather prediction model</p>
+                    </div>
+                    <div class="scale-item">
+                        <div class="scale-category">HWRF Model</div>
+                        <div class="scale-winds">Hurricane Weather Research</div>
+                        <p>Specialized hurricane-specific forecasting model</p>
+                    </div>
+                    <div class="scale-item">
+                        <div class="scale-category">HMON Model</div>
+                        <div class="scale-winds">Hurricane Multi-scale Ocean</div>
+                        <p>Advanced hurricane intensity prediction system</p>
+                    </div>
+                </div>
+                <div class="edu-section">
+                    <h2><i class="fas fa-brain"></i> Understanding Spaghetti Models</h2>
+                    <p>Spaghetti models show multiple computer forecast tracks for tropical systems. Each "strand" represents a different model's prediction of where the storm will go. When models agree (tracks cluster together), confidence is higher. When they spread out, there's more uncertainty in the forecast.</p>
+                    <p>Key models include the American GFS, European ECMWF, and specialized hurricane models like HWRF and HMON. The National Hurricane Center uses an ensemble of these models to create their official forecast track.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Education Section -->
+        <div class="content-section" id="education">
+            <div class="educational-content">
+                <div class="edu-section">
+                    <h2><i class="fas fa-wind"></i> Hurricane Formation</h2>
+                    <p>Hurricanes form over warm ocean waters (at least 80°F) when atmospheric conditions are favorable. The process requires low wind shear, sufficient atmospheric instability, and the Coriolis effect to create rotation.</p>
+                    <p>Tropical systems progress through distinct stages: tropical wave → tropical depression → tropical storm → hurricane. Each stage is defined by sustained wind speeds and organizational structure.</p>
+                </div>
+
+                <div class="edu-section">
+                    <h2><i class="fas fa-tachometer-alt"></i> Saffir-Simpson Hurricane Scale</h2>
+                    <div class="hurricane-scale">
+                        <div class="scale-item">
+                            <div class="scale-category tropical-depression">Tropical Depression</div>
+                            <div class="scale-winds">≤ 38 mph winds</div>
+                            <p>Organized system with defined circulation but minimal threat</p>
+                        </div>
+                        <div class="scale-item">
+                            <div class="scale-category tropical-storm">Tropical Storm</div>
+                            <div class="scale-winds">39-73 mph winds</div>
+                            <p>Named storm with potential for damage to vegetation and signs</p>
+                        </div>
+                        <div class="scale-item">
+                            <div class="scale-category cat-1">Category 1</div>
+                            <div class="scale-winds">74-95 mph winds</div>
+                            <p>Minimal hurricane with some damage to roofing and siding</p>
+                        </div>
+                        <div class="scale-item">
+                            <div class="scale-category cat-2">Category 2</div>
+                            <div class="scale-winds">96-110 mph winds</div>
+                            <p>Moderate hurricane with extensive damage to roofing and siding</p>
+                        </div>
+                        <div class="scale-item">
+                            <div class="scale-category cat-3">Category 3</div>
+                            <div class="scale-winds">111-129 mph winds</div>
+                            <p>Major hurricane causing devastating damage to structures</p>
+                        </div>
+                        <div class="scale-item">
+                            <div class="scale-category cat-4">Category 4</div>
+                            <div class="scale-winds">130-156 mph winds</div>
+                            <p>Extreme hurricane with catastrophic damage to structures</p>
+                        </div>
+                        <div class="scale-item">
+                            <div class="scale-category cat-5">Category 5</div>
+                            <div class="scale-winds">≥ 157 mph winds</div>
+                            <p>Catastrophic hurricane causing total destruction of structures</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="edu-section">
+                    <h2><i class="fas fa-water"></i> Storm Surge</h2>
+                    <p>Storm surge is often the deadliest aspect of hurricanes. It's caused by winds pushing ocean water toward shore, creating a wall of water that can reach 20+ feet above normal sea level.</p>
+                    <p>The surge is influenced by storm intensity, size, forward speed, track angle, and coastal geography. Shallow coastal areas and concave coastlines amplify surge heights.</p>
+                </div>
+
+                <div class="edu-section">
+                    <h2><i class="fas fa-shield-alt"></i> Preparation Guidelines</h2>
+                    <p><strong>Remember:</strong> Run from the water, hide from the wind!</p>
+                    <p>Storm surge evacuation is mandatory when ordered. Flooding from surge can occur miles inland and is the primary killer in hurricanes. Wind damage, while dangerous, is generally survivable in a well-built structure.</p>
+                    <ul style="color: #cbd5e1; margin-left: 2rem; line-height: 1.6;">
+                        <li>Have an evacuation plan and multiple routes</li>
+                        <li>Maintain emergency supplies for 7+ days</li>
+                        <li>Know your evacuation zone</li>
+                        <li>Keep important documents in waterproof containers</li>
+                        <li>Install storm shutters or board up windows</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerts Section -->
+        <div class="content-section" id="alerts">
+            <div class="educational-content">
+                <div class="alerts-section">
+                    <div class="panel-header">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h3>Active Weather Alerts</h3>
+                    </div>
+                    <div id="active-alerts">
+                        <div class="alert-item">
+                            <div class="alert-title">Hurricane Watch - Eastern Seaboard</div>
+                            <div class="alert-time">Issued: 6:00 PM EST</div>
+                            <p>Hurricane conditions possible within 48 hours. Preparations should be rushed to completion.</p>
+                        </div>
+                        <div class="alert-item">
+                            <div class="alert-title">Storm Surge Warning - Gulf Coast</div>
+                            <div class="alert-time">Issued: 3:30 PM EST</div>
+                            <p>Life-threatening inundation expected. Evacuate immediately if in surge zone.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="edu-section">
+                    <h2><i class="fas fa-bell"></i> Understanding Warnings & Watches</h2>
+                    <div class="hurricane-scale">
+                        <div class="scale-item">
+                            <div class="scale-category" style="color: #fbbf24;">Hurricane Watch</div>
+                            <p>Hurricane conditions possible within 48 hours. Time to complete preparations.</p>
+                        </div>
+                        <div class="scale-item">
+                            <div class="scale-category" style="color: #ef4444;">Hurricane Warning</div>
+                            <p>Hurricane conditions expected within 36 hours. Complete preparations now.</p>
+                        </div>
+                        <div class="scale-item">
+                            <div class="scale-category" style="color: #06b6d4;">Storm Surge Watch</div>
+                            <p>Life-threatening surge possible within 48 hours.</p>
+                        </div>
+                        <div class="scale-item">
+                            <div class="scale-category" style="color: #dc2626;">Storm Surge Warning</div>
+                            <p>Life-threatening surge expected. Evacuate now if ordered.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="info-panel">
+                <div class="panel-header">
+                    <i class="fas fa-satellite"></i>
+                    <h3>System Status</h3>
+                </div>
+                <div class="status-indicators">
+                    <div class="status-card">
+                        <div class="status-value" id="active-systems">3</div>
+                        <div class="status-label">Active Systems</div>
+                    </div>
+                    <div class="status-card">
+                        <div class="status-value" id="last-update">Live</div>
+                        <div class="status-label">Data Status</div>
+                    </div>
+                </div>
+                <div class="status-indicators">
+                    <div class="status-card">
+                        <div class="status-value" id="season-count">12</div>
+                        <div class="status-label">2025 Season</div>
+                    </div>
+                    <div class="status-card">
+                        <div class="status-value" id="major-count">4</div>
+                        <div class="status-label">Major (Cat 3+)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-panel">
+                <div class="panel-header">
+                    <i class="fas fa-list-ul"></i>
+                    <h3>Active Storms</h3>
+                </div>
+                <div class="storm-list" id="storm-list">
+                    <div class="storm-item">
+                        <div class="storm-header">
+                            <div class="storm-name">Hurricane Isabel</div>
+                            <div class="storm-category cat-3">Cat 3</div>
+                        </div>
+                        <div class="storm-details">
+                            <div>Winds: 125 mph</div>
+                            <div>Pressure: 958 mb</div>
+                            <div>Location: 25.4°N, 76.2°W</div>
+                            <div>Speed: 12 mph NNW</div>
+                        </div>
+                    </div>
+                    
+                    <div class="storm-item">
+                        <div class="storm-header">
+                            <div class="storm-name">Tropical Storm José</div>
+                            <div class="storm-category tropical-storm">TS</div>
+                        </div>
+                        <div class="storm-details">
+                            <div>Winds: 65 mph</div>
+                            <div>Pressure: 995 mb</div>
+                            <div>Location: 18.7°N, 45.1°W</div>
+                            <div>Speed: 18 mph W</div>
+                        </div>
+                    </div>
+
+                    <div class="storm-item">
+                        <div class="storm-header">
+                            <div class="storm-name">Invest 92L</div>
+                            <div class="storm-category tropical-depression">Invest</div>
+                        </div>
+                        <div class="storm-details">
+                            <div>Winds: 25 mph</div>
+                            <div>Pressure: 1008 mb</div>
+                            <div>Location: 12.1°N, 28.4°W</div>
+                            <div>Development: 40%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-panel">
+                <div class="panel-header">
+                    <i class="fas fa-route"></i>
+                    <h3>Forecast Models</h3>
+                </div>
+                <div class="forecast-models">
+                    <div class="model-item">
+                        <div class="model-name">GFS</div>
+                        <div class="model-accuracy">85%</div>
+                    </div>
+                    <div class="model-item">
+                        <div class="model-name">ECMWF</div>
+                        <div class="model-accuracy">88%</div>
+                    </div>
+                    <div class="model-item">
+                        <div class="model-name">HWRF</div>
+                        <div class="model-accuracy">82%</div>
+                    </div>
+                    <div class="model-item">
+                        <div class="model-name">HMON</div>
+                        <div class="model-accuracy">79%</div>
+                    </div>
+                    <div class="model-item">
+                        <div class="model-name">NHCOCS</div>
+                        <div class="model-accuracy">91%</div>
+                    </div>
+                    <div class="model-item">
+                        <div class="model-name">SHIPS</div>
+                        <div class="model-accuracy">76%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="config.js"></script>
+    <script src="noaa-api.js"></script>
+    <script src="weather-data.js"></script>
+    <script>
+        class TropicsTracker {
+            constructor() {
+                this.map = null;
+                this.currentLayer = 'satellite';
+                this.currentBasin = 'atlantic';
+                this.storms = new Map();
+                this.weatherData = new WeatherDataManager(CONFIG);
+                this.init();
+            }
+
+            init() {
+                this.initMap();
+                this.initEventListeners();
+                this.loadInitialData();
+                this.startDataUpdates();
+                this.weatherData.startCacheCleanup();
+            }
+
+            initMap() {
+                // Initialize Leaflet map using config
+                this.map = L.map('map', {
+                    center: CONFIG.MAP_CONFIG.DEFAULT_CENTER,
+                    zoom: CONFIG.MAP_CONFIG.DEFAULT_ZOOM,
+                    minZoom: CONFIG.MAP_CONFIG.MIN_ZOOM,
+                    maxZoom: CONFIG.MAP_CONFIG.MAX_ZOOM,
+                    zoomControl: true,
+                    attributionControl: false
+                });
+
+                // Add satellite base layer
+                const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: 'ESRI World Imagery'
+                });
+                
+                const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: 'OpenStreetMap'
+                });
+
+                satelliteLayer.addTo(this.map);
+
+                // Store layers for switching
+                this.layers = {
+                    satellite: satelliteLayer,
+                    street: streetLayer
+                };
+
+                // Add some sample hurricane tracks
+                this.addSampleStorms();
+            }
+
+            addSampleStorms() {
+                // Hurricane Isabel track
+                const isabelTrack = [
+                    [25.4, -76.2], [26.1, -76.8], [26.8, -77.4], [27.5, -78.0],
+                    [28.2, -78.6], [29.0, -79.2], [29.8, -79.8], [30.6, -80.4]
+                ];
+
+                const isabelLine = L.polyline(isabelTrack, {
+                    color: '#ef4444',
+                    weight: 4,
+                    opacity: 0.8
+                }).addTo(this.map);
+
+                // Current position marker
+                const isabelMarker = L.marker([25.4, -76.2], {
+                    icon: L.divIcon({
+                        className: 'hurricane-marker cat-3',
+                        html: '<i class="fas fa-hurricane"></i>',
+                        iconSize: [30, 30]
+                    })
+                }).addTo(this.map);
+
+                isabelMarker.bindPopup(`
+                    <div style="color: #1e293b; font-weight: bold;">
+                        <h4>Hurricane Isabel</h4>
+                        <p>Category 3 Hurricane</p>
+                        <p>Winds: 125 mph</p>
+                        <p>Pressure: 958 mb</p>
+                        <p>Movement: NNW at 12 mph</p>
+                    </div>
+                `);
+
+                // Tropical Storm José
+                const joseMarker = L.marker([18.7, -45.1], {
+                    icon: L.divIcon({
+                        className: 'hurricane-marker tropical-storm',
+                        html: '<i class="fas fa-cloud-rain"></i>',
+                        iconSize: [25, 25]
+                    })
+                }).addTo(this.map);
+
+                joseMarker.bindPopup(`
+                    <div style="color: #1e293b; font-weight: bold;">
+                        <h4>Tropical Storm José</h4>
+                        <p>Tropical Storm</p>
+                        <p>Winds: 65 mph</p>
+                        <p>Pressure: 995 mb</p>
+                        <p>Movement: W at 18 mph</p>
+                    </div>
+                `);
+
+                // Invest 92L
+                const investMarker = L.marker([12.1, -28.4], {
+                    icon: L.divIcon({
+                        className: 'hurricane-marker tropical-depression',
+                        html: '<i class="fas fa-cloud"></i>',
+                        iconSize: [20, 20]
+                    })
+                }).addTo(this.map);
+
+                investMarker.bindPopup(`
+                    <div style="color: #1e293b; font-weight: bold;">
+                        <h4>Invest 92L</h4>
+                        <p>Area of Investigation</p>
+                        <p>Winds: 25 mph</p>
+                        <p>Development Chance: 40%</p>
+                    </div>
+                `);
+            }
+
+            initEventListeners() {
+                // Navigation tabs
+                document.querySelectorAll('.nav-tab').forEach(tab => {
+                    tab.addEventListener('click', (e) => {
+                        const section = e.target.getAttribute('data-section');
+                        this.switchSection(section);
+                    });
+                });
+
+                // Map controls
+                document.querySelectorAll('[data-layer]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const layer = e.target.getAttribute('data-layer');
+                        this.switchMapLayer(layer);
+                    });
+                });
+
+                // Control buttons
+                document.querySelectorAll('[data-action]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const action = e.target.getAttribute('data-action');
+                        this.handleAction(action);
+                    });
+                });
+
+                // Basin buttons
+                document.querySelectorAll('[data-basin]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const basin = e.target.getAttribute('data-basin');
+                        this.switchBasin(basin);
+                    });
+                });
+
+                // Storm list items
+                document.querySelectorAll('.storm-item').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        this.focusOnStorm(e.currentTarget);
+                    });
+                });
+            }
+
+            switchSection(sectionName) {
+                // Update nav tabs
+                document.querySelectorAll('.nav-tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
+
+                // Update content sections
+                document.querySelectorAll('.content-section').forEach(section => {
+                    section.classList.remove('active');
+                });
+                document.getElementById(sectionName).classList.add('active');
+            }
+
+            switchMapLayer(layerName) {
+                // Update control buttons
+                document.querySelectorAll('[data-layer]').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelector(`[data-layer="${layerName}"]`).classList.add('active');
+
+                // Switch map layer (placeholder - would integrate with actual weather APIs)
+                this.currentLayer = layerName;
+                console.log(`Switched to ${layerName} layer`);
+            }
+
+            handleAction(action) {
+                switch(action) {
+                    case 'refresh':
+                        this.refreshData();
+                        break;
+                    case 'fullscreen':
+                        this.toggleFullscreen();
+                        break;
+                }
+            }
+
+            focusOnStorm(stormElement) {
+                // Remove active class from all storm items
+                document.querySelectorAll('.storm-item').forEach(item => {
+                    item.style.background = '';
+                });
+                
+                // Highlight selected storm
+                stormElement.style.background = 'rgba(59, 130, 246, 0.2)';
+
+                // Get storm coordinates based on storm name (simplified)
+                const stormName = stormElement.querySelector('.storm-name').textContent;
+                let coordinates;
+                
+                switch(stormName) {
+                    case 'Hurricane Isabel':
+                        coordinates = [25.4, -76.2];
+                        break;
+                    case 'Tropical Storm José':
+                        coordinates = [18.7, -45.1];
+                        break;
+                    case 'Invest 92L':
+                        coordinates = [12.1, -28.4];
+                        break;
+                    default:
+                        coordinates = [25.0, -75.0];
+                }
+
+                this.map.setView(coordinates, 8);
+            }
+
+            refreshData() {
+                // Simulate data refresh
+                const refreshBtn = document.querySelector('[data-action="refresh"] i');
+                refreshBtn.style.animation = 'spin 1s linear infinite';
+                
+                setTimeout(() => {
+                    refreshBtn.style.animation = '';
+                    this.updateLastRefreshTime();
+                }, 2000);
+            }
+
+            updateLastRefreshTime() {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString();
+                document.getElementById('last-update').textContent = timeString;
+            }
+
+            toggleFullscreen() {
+                const mapSection = document.querySelector('.map-section');
+                if (!document.fullscreenElement) {
+                    mapSection.requestFullscreen().catch(err => {
+                        console.log('Fullscreen not supported');
+                    });
+                } else {
+                    document.exitFullscreen();
+                }
+            }
+
+            async loadInitialData() {
+                try {
+                    // Load real weather data
+                    await this.loadActiveStorms();
+                    await this.loadWeatherAlerts();
+                    this.updateSystemCounts();
+                    this.updateLastRefreshTime();
+                } catch (error) {
+                    console.error('Error loading initial data:', error);
+                    // Fall back to demo data
+                    this.loadDemoData();
+                }
+            }
+
+            async loadActiveStorms() {
+                try {
+                    const storms = await this.weatherData.fetchActiveStorms();
+                    this.displayStorms(storms);
+                    this.updateStormList(storms);
+                } catch (error) {
+                    console.error('Error loading active storms:', error);
+                }
+            }
+
+            async loadWeatherAlerts() {
+                try {
+                    const alerts = await this.weatherData.fetchWeatherAlerts();
+                    this.displayAlerts(alerts);
+                } catch (error) {
+                    console.error('Error loading weather alerts:', error);
+                }
+            }
+
+            loadDemoData() {
+                // Keep existing demo storm functionality as fallback
+                this.addSampleStorms();
+                this.updateSystemCounts();
+            }
+
+            updateSystemCounts() {
+                // Simulate season statistics
+                const counts = {
+                    active: Math.floor(Math.random() * 5) + 1,
+                    season: Math.floor(Math.random() * 10) + 8,
+                    major: Math.floor(Math.random() * 6) + 2
+                };
+
+                document.getElementById('active-systems').textContent = counts.active;
+                document.getElementById('season-count').textContent = counts.season;
+                document.getElementById('major-count').textContent = counts.major;
+            }
+
+            switchBasin(basinCode) {
+                const basin = CONFIG.MAP_CONFIG.BASINS[basinCode];
+                if (!basin) return;
+
+                this.currentBasin = basinCode;
+                this.map.fitBounds(basin.bounds);
+                
+                // Update storms for this basin
+                this.loadActiveStorms();
+                
+                // Update UI to show current basin
+                document.querySelector('.nav-tab[data-section="basins"]').textContent = 
+                    `📍 ${basin.name}`;
+            }
+
+            displayStorms(storms) {
+                // Clear existing storm markers
+                this.clearStormMarkers();
+
+                storms.forEach(storm => {
+                    this.addStormMarker(storm);
+                });
+            }
+
+            addStormMarker(storm) {
+                const marker = L.marker(storm.coordinates, {
+                    icon: L.divIcon({
+                        className: `hurricane-marker ${storm.classification.code.toLowerCase()}`,
+                        html: this.getStormIcon(storm.classification.code),
+                        iconSize: [30, 30]
+                    })
+                }).addTo(this.map);
+
+                marker.bindPopup(`
+                    <div style="color: #1e293b; font-weight: bold;">
+                        <h4>${storm.name}</h4>
+                        <p>${storm.classification.name}</p>
+                        <p>Winds: ${storm.windSpeed} mph</p>
+                        <p>Pressure: ${storm.pressure} mb</p>
+                        <p>Movement: ${storm.movement.direction} at ${storm.movement.speed} mph</p>
+                        <p>Basin: ${storm.basin.toUpperCase()}</p>
+                    </div>
+                `);
+
+                this.storms.set(storm.id, { storm, marker });
+            }
+
+            getStormIcon(category) {
+                const icons = {
+                    'TD': '<i class="fas fa-cloud"></i>',
+                    'TS': '<i class="fas fa-cloud-rain"></i>',
+                    'CAT1': '<i class="fas fa-hurricane"></i>',
+                    'CAT2': '<i class="fas fa-hurricane"></i>',
+                    'CAT3': '<i class="fas fa-hurricane"></i>',
+                    'CAT4': '<i class="fas fa-hurricane"></i>',
+                    'CAT5': '<i class="fas fa-hurricane"></i>'
+                };
+                return icons[category] || icons['TD'];
+            }
+
+            clearStormMarkers() {
+                this.storms.forEach(({ marker }) => {
+                    this.map.removeLayer(marker);
+                });
+                this.storms.clear();
+            }
+
+            updateStormList(storms) {
+                const stormList = document.getElementById('storm-list');
+                if (!stormList) return;
+
+                stormList.innerHTML = storms.map(storm => `
+                    <div class="storm-item" data-storm-id="${storm.id}">
+                        <div class="storm-header">
+                            <div class="storm-name">${storm.name}</div>
+                            <div class="storm-category ${storm.classification.code.toLowerCase()}">${storm.classification.code}</div>
+                        </div>
+                        <div class="storm-details">
+                            <div>Winds: ${storm.windSpeed} mph</div>
+                            <div>Pressure: ${storm.pressure} mb</div>
+                            <div>Location: ${storm.coordinates[0].toFixed(1)}°N, ${Math.abs(storm.coordinates[1]).toFixed(1)}°W</div>
+                            <div>Speed: ${storm.movement.speed} mph ${storm.movement.direction}</div>
+                        </div>
+                    </div>
+                `).join('');
+
+                // Re-attach event listeners
+                this.attachStormListeners();
+            }
+
+            attachStormListeners() {
+                document.querySelectorAll('.storm-item').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        const stormId = e.currentTarget.getAttribute('data-storm-id');
+                        this.focusOnStormById(stormId);
+                    });
+                });
+            }
+
+            focusOnStormById(stormId) {
+                const stormData = this.storms.get(stormId);
+                if (stormData) {
+                    const { storm, marker } = stormData;
+                    this.map.setView(storm.coordinates, 8);
+                    marker.openPopup();
+                }
+            }
+
+            displayAlerts(alerts) {
+                const alertsContainer = document.getElementById('active-alerts');
+                if (!alertsContainer || !alerts.length) return;
+
+                alertsContainer.innerHTML = alerts.map(alert => `
+                    <div class="alert-item">
+                        <div class="alert-title">${alert.title}</div>
+                        <div class="alert-time">Issued: ${new Date(alert.issued).toLocaleString()}</div>
+                        <p>${alert.description}</p>
+                    </div>
+                `).join('');
+            }
+
+            async refreshData() {
+                try {
+                    // Simulate data refresh with loading state
+                    const refreshBtn = document.querySelector('[data-action="refresh"] i');
+                    if (refreshBtn) {
+                        refreshBtn.style.animation = 'spin 1s linear infinite';
+                    }
+
+                    await this.loadActiveStorms();
+                    await this.loadWeatherAlerts();
+                    this.updateLastRefreshTime();
+
+                    if (refreshBtn) {
+                        setTimeout(() => {
+                            refreshBtn.style.animation = '';
+                        }, 1000);
+                    }
+                } catch (error) {
+                    console.error('Error refreshing data:', error);
+                }
+            }
+
+            startDataUpdates() {
+                // Update data every 5 minutes
+                setInterval(() => {
+                    this.refreshData();
+                }, CONFIG.UPDATE_INTERVALS.ACTIVE_STORMS);
+
+                // Update system counts every hour
+                setInterval(() => {
+                    this.updateSystemCounts();
+                }, CONFIG.UPDATE_INTERVALS.FORECAST_MODELS);
+            }
+        }
+
+        // Custom CSS for hurricane markers
+        const markerStyles = document.createElement('style');
+        markerStyles.textContent = `
+            .hurricane-marker {
+                background: rgba(239, 68, 68, 0.9);
+                border: 2px solid #fff;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-weight: bold;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                animation: pulse 2s infinite;
+            }
+            
+            .hurricane-marker.cat-3 {
+                background: rgba(239, 68, 68, 0.9);
+            }
+            
+            .hurricane-marker.tropical-storm {
+                background: rgba(6, 182, 212, 0.9);
+            }
+            
+            .hurricane-marker.tropical-depression {
+                background: rgba(100, 116, 139, 0.9);
+            }
+            
+            @keyframes pulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+                100% { transform: scale(1); }
+            }
+        `;
+        document.head.appendChild(markerStyles);
+
+        // Initialize the tropics tracker when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new TropicsTracker();
+        });
+    </script>
+</body>
+</html>
