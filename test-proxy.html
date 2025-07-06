@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TropicsTracker API Proxy Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .test-button:hover {
+            background: #005a87;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .loading {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <h1>TropicsTracker API Proxy Test</h1>
+    <p>This page tests the PHP proxy functionality to ensure CORS issues are resolved and caching works.</p>
+
+    <div class="test-section">
+        <h2>NHC Storm Data Test</h2>
+        <button class="test-button" onclick="testNHCStorms()">Test NHC Storms</button>
+        <button class="test-button" onclick="testNHCSample()">Test NHC Sample</button>
+        <div id="nhc-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Weather Alerts Test</h2>
+        <button class="test-button" onclick="testWeatherAlerts()">Test Weather Alerts</button>
+        <button class="test-button" onclick="testWeatherAlertsFL()">Test FL Alerts</button>
+        <div id="alerts-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>WeatherAPI Test</h2>
+        <button class="test-button" onclick="testWeatherAPI()">Test Weather API</button>
+        <div id="weather-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Cache Test</h2>
+        <button class="test-button" onclick="testCache()">Test Caching (Run Twice)</button>
+        <div id="cache-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Integration Test</h2>
+        <button class="test-button" onclick="testIntegration()">Test Full Integration</button>
+        <div id="integration-result" class="result"></div>
+    </div>
+
+    <script>
+        async function testNHCStorms() {
+            const resultDiv = document.getElementById('nhc-result');
+            resultDiv.className = 'result loading';
+            resultDiv.textContent = 'Testing NHC storms endpoint...';
+
+            try {
+                const start = Date.now();
+                const response = await fetch('api-proxy.php?endpoint=nhc-storms');
+                const end = Date.now();
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                resultDiv.className = 'result success';
+                resultDiv.textContent = `✓ SUCCESS (${end - start}ms)\n\n` + 
+                    `Response: ${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `✗ ERROR: ${error.message}`;
+            }
+        }
+
+        async function testNHCSample() {
+            const resultDiv = document.getElementById('nhc-result');
+            resultDiv.className = 'result loading';
+            resultDiv.textContent = 'Testing NHC sample endpoint...';
+
+            try {
+                const start = Date.now();
+                const response = await fetch('api-proxy.php?endpoint=nhc-sample');
+                const end = Date.now();
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                resultDiv.className = 'result success';
+                resultDiv.textContent = `✓ SUCCESS (${end - start}ms)\n\n` + 
+                    `Response: ${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `✗ ERROR: ${error.message}`;
+            }
+        }
+
+        async function testWeatherAlerts() {
+            const resultDiv = document.getElementById('alerts-result');
+            resultDiv.className = 'result loading';
+            resultDiv.textContent = 'Testing weather alerts endpoint...';
+
+            try {
+                const start = Date.now();
+                const response = await fetch('api-proxy.php?endpoint=nws-alerts');
+                const end = Date.now();
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                resultDiv.className = 'result success';
+                resultDiv.textContent = `✓ SUCCESS (${end - start}ms)\n\n` + 
+                    `Found ${data.alerts ? data.alerts.length : 0} alerts\n\n` +
+                    `Response: ${JSON.stringify(data, null, 2).substring(0, 500)}...`;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `✗ ERROR: ${error.message}`;
+            }
+        }
+
+        async function testWeatherAlertsFL() {
+            const resultDiv = document.getElementById('alerts-result');
+            resultDiv.className = 'result loading';
+            resultDiv.textContent = 'Testing Florida weather alerts...';
+
+            try {
+                const start = Date.now();
+                const response = await fetch('api-proxy.php?endpoint=nws-alerts&area=FL');
+                const end = Date.now();
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                resultDiv.className = 'result success';
+                resultDiv.textContent = `✓ SUCCESS (${end - start}ms)\n\n` + 
+                    `Found ${data.alerts ? data.alerts.length : 0} FL alerts\n\n` +
+                    `Response: ${JSON.stringify(data, null, 2).substring(0, 500)}...`;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `✗ ERROR: ${error.message}`;
+            }
+        }
+
+        async function testWeatherAPI() {
+            const resultDiv = document.getElementById('weather-result');
+            resultDiv.className = 'result loading';
+            resultDiv.textContent = 'Testing WeatherAPI endpoint...';
+
+            try {
+                const start = Date.now();
+                const response = await fetch('api-proxy.php?endpoint=weatherapi&q=Miami,FL');
+                const end = Date.now();
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                resultDiv.className = 'result success';
+                resultDiv.textContent = `✓ SUCCESS (${end - start}ms)\n\n` + 
+                    `Response: ${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `✗ ERROR: ${error.message}`;
+            }
+        }
+
+        async function testCache() {
+            const resultDiv = document.getElementById('cache-result');
+            resultDiv.className = 'result loading';
+            resultDiv.textContent = 'Testing cache performance...';
+
+            try {
+                // First request
+                const start1 = Date.now();
+                const response1 = await fetch('api-proxy.php?endpoint=nhc-storms');
+                const end1 = Date.now();
+                const time1 = end1 - start1;
+
+                // Second request (should be cached)
+                const start2 = Date.now();
+                const response2 = await fetch('api-proxy.php?endpoint=nhc-storms');
+                const end2 = Date.now();
+                const time2 = end2 - start2;
+
+                if (!response1.ok || !response2.ok) {
+                    throw new Error('One or both requests failed');
+                }
+
+                const improvement = ((time1 - time2) / time1 * 100).toFixed(1);
+                
+                resultDiv.className = 'result success';
+                resultDiv.textContent = `✓ CACHE TEST RESULTS:\n\n` +
+                    `First request: ${time1}ms\n` +
+                    `Second request: ${time2}ms\n` +
+                    `Performance improvement: ${improvement}%\n\n` +
+                    `${time2 < time1 ? '✓ Cache is working!' : '⚠ Cache may not be active'}`;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `✗ ERROR: ${error.message}`;
+            }
+        }
+
+        async function testIntegration() {
+            const resultDiv = document.getElementById('integration-result');
+            resultDiv.className = 'result loading';
+            resultDiv.textContent = 'Testing full integration with WeatherDataManager...';
+
+            try {
+                // Load the configuration and classes
+                if (typeof CONFIG === 'undefined' || typeof WeatherDataManager === 'undefined') {
+                    // Load required scripts
+                    await loadScript('config.js');
+                    await loadScript('noaa-api.js');
+                    await loadScript('weather-data.js');
+                }
+
+                const weatherData = new WeatherDataManager(CONFIG);
+                
+                // Test active storms
+                const storms = await weatherData.fetchActiveStorms();
+                
+                // Test weather alerts
+                const alerts = await weatherData.fetchWeatherAlerts();
+
+                resultDiv.className = 'result success';
+                resultDiv.textContent = `✓ INTEGRATION TEST PASSED\n\n` +
+                    `Active storms: ${storms.length}\n` +
+                    `Weather alerts: ${alerts.length}\n\n` +
+                    `Sample storm data:\n${JSON.stringify(storms[0] || {}, null, 2)}`;
+                    
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `✗ INTEGRATION ERROR: ${error.message}\n\n` +
+                    `Make sure config.js, noaa-api.js, and weather-data.js are accessible.`;
+            }
+        }
+
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        // Auto-run a basic test on page load
+        window.onload = function() {
+            console.log('TropicsTracker API Proxy Test Page Loaded');
+            console.log('Click the test buttons to verify proxy functionality');
+        };
+    </script>
+</body>
+</html>

@@ -19,15 +19,12 @@ class NOAAApiClient {
      */
     async fetchActiveStorms() {
         try {
-            // Try multiple endpoints for active storm data
-            const endpoints = [
-                'https://www.nhc.noaa.gov/CurrentStorms.json',
-                'https://www.nhc.noaa.gov/productexamples/NHC_JSON_Sample.json'
-            ];
+            // Try multiple endpoints for active storm data via PHP proxy
+            const endpoints = ['nhc-storms', 'nhc-sample'];
 
             for (const endpoint of endpoints) {
                 try {
-                    const response = await fetch(endpoint);
+                    const response = await fetch(`api-proxy.php?endpoint=${endpoint}`);
                     if (response.ok) {
                         const data = await response.json();
                         return this.parseNHCStormData(data);
@@ -72,9 +69,9 @@ class NOAAApiClient {
      */
     async fetchWeatherAlerts(state = null) {
         try {
-            let url = `${this.baseUrls.nws}alerts/active`;
+            let url = `api-proxy.php?endpoint=nws-alerts`;
             if (state) {
-                url += `?area=${state}`;
+                url += `&area=${state}`;
             }
 
             const response = await fetch(url);
@@ -96,14 +93,12 @@ class NOAAApiClient {
     async fetchHurricaneDatabase(year = null) {
         try {
             // HURDAT2 data is typically in CSV format
-            const url = year 
-                ? `https://www.aoml.noaa.gov/hrd/hurdat/hurdat2-${year}.txt`
-                : 'https://www.aoml.noaa.gov/hrd/hurdat/hurdat2.txt';
+            const url = `api-proxy.php?endpoint=hurdat2${year ? '&year=' + year : ''}`;
 
             const response = await fetch(url);
             if (response.ok) {
-                const csvData = await response.text();
-                return this.parseHurdatData(csvData);
+                const data = await response.json();
+                return data.storms || [];
             }
 
             return [];
@@ -153,12 +148,12 @@ class NOAAApiClient {
      */
     parseNHCStormData(data) {
         // Handle different possible data structures
-        if (data.activeStorms && Array.isArray(data.activeStorms)) {
-            return data.activeStorms.map(storm => this.normalizeStormData(storm));
+        if (data.storms && Array.isArray(data.storms)) {
+            return data.storms;
         }
         
-        if (data.storms && Array.isArray(data.storms)) {
-            return data.storms.map(storm => this.normalizeStormData(storm));
+        if (data.activeStorms && Array.isArray(data.activeStorms)) {
+            return data.activeStorms.map(storm => this.normalizeStormData(storm));
         }
 
         // If no active storms, return demo data
@@ -248,6 +243,10 @@ class NOAAApiClient {
      * Parse weather alerts data
      */
     parseWeatherAlerts(data) {
+        if (data.alerts && Array.isArray(data.alerts)) {
+            return data.alerts;
+        }
+        
         if (!data.features || !Array.isArray(data.features)) {
             return this.getDemoAlerts();
         }

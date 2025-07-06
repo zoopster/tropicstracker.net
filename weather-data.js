@@ -47,9 +47,8 @@ class WeatherDataManager {
      */
     async fetchNHCData() {
         const endpoints = [
-            'https://www.nhc.noaa.gov/CurrentStorms.json',
-            'https://www.nhc.noaa.gov/gis/forecast/archive/wsp_120hr5km_latest.zip',
-            'https://www.nhc.noaa.gov/gis/forecast/archive/al_active.zip'
+            'api-proxy.php?endpoint=nhc-storms',
+            'api-proxy.php?endpoint=nhc-sample'
         ];
 
         const responses = await Promise.allSettled(
@@ -62,8 +61,8 @@ class WeatherDataManager {
             if (response.status === 'fulfilled' && response.value.ok) {
                 try {
                     const data = await response.value.json();
-                    if (data.activeStorms) {
-                        storms.push(...this.parseNHCStorms(data.activeStorms));
+                    if (data.storms) {
+                        storms.push(...data.storms);
                     }
                 } catch (e) {
                     console.warn('Failed to parse NHC data:', e);
@@ -107,7 +106,7 @@ class WeatherDataManager {
      * Fetch storms from OpenWeatherMap
      */
     async fetchOpenWeatherMapStorms() {
-        const url = `${this.config.WEATHER_APIS.OPENWEATHER_BASE_URL}onecall?lat=25&lon=-75&appid=${this.config.WEATHER_APIS.OPENWEATHER_API_KEY}&exclude=minutely,hourly,daily`;
+        const url = `api-proxy.php?endpoint=weatherapi&q=25,-75`;
         
         const response = await this.fetchWithRetry(url);
         const data = await response.json();
@@ -119,16 +118,9 @@ class WeatherDataManager {
      * Fetch storms from RapidAPI
      */
     async fetchRapidAPIStorms() {
-        const url = 'https://weatherapi-com.p.rapidapi.com/current.json';
-        const options = {
-            method: 'GET',
-            headers: {
-                'X-RapidAPI-Key': this.config.WEATHER_APIS.RAPIDAPI_KEY,
-                'X-RapidAPI-Host': this.config.WEATHER_APIS.RAPIDAPI_HOST
-            }
-        };
+        const url = 'api-proxy.php?endpoint=weatherapi&q=25,-75';
 
-        const response = await this.fetchWithRetry(url, options);
+        const response = await this.fetchWithRetry(url);
         const data = await response.json();
         
         return this.parseRapidAPIData(data);
