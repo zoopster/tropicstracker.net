@@ -108,9 +108,9 @@ $API_ENDPOINTS = [
     // Weather imagery endpoints
     'goes-satellite' => 'https://mapservices.weather.noaa.gov/raster/rest/services/obs/goes16_conus_geocolor/ImageServer',
     'nexrad-radar' => 'https://mapservices.weather.noaa.gov/eventdriven/rest/services/radar/radar_base_reflectivity_time/ImageServer',
-    'wind-data' => 'https://earth.nullschool.net/api/v1/winds/current',
-    'pressure-data' => 'https://earth.nullschool.net/api/v1/pressure/current',
-    'sea-temp-data' => 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/jplMURSST41.png'
+    'wind-data' => 'https://openweathermap.org/weathermap',
+    'pressure-data' => 'https://openweathermap.org/weathermap', 
+    'sea-temp-data' => 'https://openweathermap.org/weathermap'
 ];
 
 // Cache handling
@@ -645,8 +645,8 @@ function buildWeatherImageryResponse($endpoint, $params, $base_url) {
         case 'nexrad-radar':
             return [
                 'type' => 'tile',
-                'tileUrl' => 'https://tilecache.rainviewer.com/v2/radar/' . (time() - 600) . '/256/{z}/{x}/{y}/2/1_1.png',
-                'attribution' => 'RainViewer Radar Data',
+                'tileUrl' => 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png',
+                'attribution' => 'Iowa State Mesonet NEXRAD Radar',
                 'opacity' => 0.6,
                 'bounds' => parseBounds($params['bounds'] ?? ''),
                 'timestamp' => $timestamp,
@@ -667,37 +667,40 @@ function buildWeatherDataResponse($endpoint, $params, $base_url) {
     
     switch ($endpoint) {
         case 'wind-data':
+            $owm_api_key = getenv('OPENWEATHER_API_KEY') ?: '9e5cc90e8cd2b34cabc906523a697644';
             return [
-                'type' => 'vector',
-                'vectorUrl' => $base_url,
-                'attribution' => 'earth.nullschool.net Wind Data',
+                'type' => 'tile',
+                'tileUrl' => 'https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=' . $owm_api_key,
+                'attribution' => 'OpenWeatherMap Wind Data',
                 'opacity' => 0.8,
                 'bounds' => parseBounds($params['bounds'] ?? ''),
                 'timestamp' => $timestamp,
-                'windScale' => getWindScale(),
-                'particleCount' => 5000
+                'maxZoom' => 10,
+                'minZoom' => 1
             ];
         case 'pressure-data':
+            $owm_api_key = getenv('OPENWEATHER_API_KEY') ?: '9e5cc90e8cd2b34cabc906523a697644';
             return [
-                'type' => 'contour',
-                'contourUrl' => $base_url,
-                'attribution' => 'earth.nullschool.net Pressure Data',
+                'type' => 'tile',
+                'tileUrl' => 'https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png?appid=' . $owm_api_key,
+                'attribution' => 'OpenWeatherMap Pressure Data',
                 'opacity' => 0.5,
                 'bounds' => parseBounds($params['bounds'] ?? ''),
                 'timestamp' => $timestamp,
-                'contourLines' => getPressureContours(),
-                'colorMap' => getPressureColorMap()
+                'maxZoom' => 10,
+                'minZoom' => 1
             ];
         case 'sea-temp-data':
+            $owm_api_key = getenv('OPENWEATHER_API_KEY') ?: '9e5cc90e8cd2b34cabc906523a697644';
             return [
-                'type' => 'heatmap',
-                'heatmapUrl' => $base_url,
-                'attribution' => 'NOAA Sea Surface Temperature',
+                'type' => 'tile',
+                'tileUrl' => 'https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=' . $owm_api_key,
+                'attribution' => 'OpenWeatherMap Temperature Data (One Call API 3.0)',
                 'opacity' => 0.6,
                 'bounds' => parseBounds($params['bounds'] ?? ''),
                 'timestamp' => $timestamp,
-                'temperatureScale' => getSeaTempScale(),
-                'colorMap' => getSeaTempColorMap()
+                'maxZoom' => 10,
+                'minZoom' => 1
             ];
         default:
             return ['error' => 'Unknown weather data endpoint'];
@@ -729,8 +732,8 @@ function buildWeatherImageryFallback($endpoint) {
         case 'nexrad-radar':
             return [
                 'type' => 'tile',
-                'tileUrl' => 'https://tilecache.rainviewer.com/v2/radar/' . (time() - 600) . '/256/{z}/{x}/{y}/2/1_1.png',
-                'attribution' => 'RainViewer Radar (Fallback)',
+                'tileUrl' => 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png',
+                'attribution' => 'Iowa State Mesonet NEXRAD Radar (Fallback)',
                 'opacity' => 0.6,
                 'bounds' => [[-90, -180], [90, 180]],
                 'timestamp' => $timestamp,
@@ -739,7 +742,7 @@ function buildWeatherImageryFallback($endpoint) {
                 'colorMap' => getRadarColorMap(),
                 'backup_sources' => [
                     'https://mapservices.weather.noaa.gov/eventdriven/rest/services/radar/radar_base_reflectivity_time/ImageServer/tile/{z}/{y}/{x}',
-                    'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png'
+                    'https://radar.weather.gov/ridge/lite/N0R/FFC_loop.gif'
                 ]
             ];
         default:
@@ -755,37 +758,40 @@ function buildWeatherDataFallback($endpoint) {
     
     switch ($endpoint) {
         case 'wind-data':
+            $owm_api_key = getenv('OPENWEATHER_API_KEY') ?: '9e5cc90e8cd2b34cabc906523a697644';
             return [
-                'type' => 'vector',
-                'vectorUrl' => 'https://earth.nullschool.net/api/v1/winds/current',
-                'attribution' => 'earth.nullschool.net Wind Data (Fallback)',
+                'type' => 'tile',
+                'tileUrl' => 'https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=' . $owm_api_key,
+                'attribution' => 'OpenWeatherMap Wind Data (Fallback)',
                 'opacity' => 0.8,
                 'bounds' => [[-90, -180], [90, 180]],
                 'timestamp' => $timestamp,
-                'windScale' => getWindScale(),
-                'particleCount' => 3000
+                'maxZoom' => 10,
+                'minZoom' => 1
             ];
         case 'pressure-data':
+            $owm_api_key = getenv('OPENWEATHER_API_KEY') ?: '9e5cc90e8cd2b34cabc906523a697644';
             return [
-                'type' => 'contour',
-                'contourUrl' => 'https://earth.nullschool.net/api/v1/pressure/current',
-                'attribution' => 'earth.nullschool.net Pressure Data (Fallback)',
+                'type' => 'tile',
+                'tileUrl' => 'https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png?appid=' . $owm_api_key,
+                'attribution' => 'OpenWeatherMap Pressure Data (Fallback)',
                 'opacity' => 0.5,
                 'bounds' => [[-90, -180], [90, 180]],
                 'timestamp' => $timestamp,
-                'contourLines' => getPressureContours(),
-                'colorMap' => getPressureColorMap()
+                'maxZoom' => 10,
+                'minZoom' => 1
             ];
         case 'sea-temp-data':
+            $owm_api_key = getenv('OPENWEATHER_API_KEY') ?: '9e5cc90e8cd2b34cabc906523a697644';
             return [
-                'type' => 'heatmap',
-                'heatmapUrl' => 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/jplMURSST41.png',
-                'attribution' => 'NOAA Sea Surface Temperature (Fallback)',
+                'type' => 'tile',
+                'tileUrl' => 'https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=' . $owm_api_key,
+                'attribution' => 'OpenWeatherMap Temperature Data (One Call API 3.0 Fallback)',
                 'opacity' => 0.6,
                 'bounds' => [[-90, -180], [90, 180]],
                 'timestamp' => $timestamp,
-                'temperatureScale' => getSeaTempScale(),
-                'colorMap' => getSeaTempColorMap()
+                'maxZoom' => 10,
+                'minZoom' => 1
             ];
         default:
             return ['error' => 'Unknown weather data endpoint'];

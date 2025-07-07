@@ -13,7 +13,7 @@ const CONFIG = {
         NHC_BASE_URL: 'https://www.nhc.noaa.gov/gis/',
         
         // OpenWeatherMap API - Free tier available
-        OPENWEATHER_API_KEY: 'your_openweather_api_key_here',
+        OPENWEATHER_API_KEY: '9e5cc90e8cd2b34cabc906523a697644',
         OPENWEATHER_BASE_URL: 'https://api.openweathermap.org/data/2.5/',
         
         // RapidAPI Weather Services
@@ -21,7 +21,7 @@ const CONFIG = {
         // RAPIDAPI_HOST: 'weatherapi-com.p.rapidapi.com',
 
         //weatherapi
-        WEATHERAPI_KEY: 'your_weatherapi_key_here',
+        WEATHERAPI_KEY: '7217af5f54dd4dd1a40204557250607',
         WEATHERAPI_HOST: 'https://api.weatherapi.com/v1/',
         
         // NOAA Weather Service API - Free
@@ -32,8 +32,8 @@ const CONFIG = {
         HURDAT2_URL: 'https://www.aoml.noaa.gov/hrd/hurdat/hurdat2.html',
         
         // Satellite and Radar Imagery
-        MAPBOX_ACCESS_TOKEN: 'your_mapbox_access_token_here',
-        GOOGLE_MAPS_API_KEY: 'your_google_maps_api_key_here',
+        MAPBOX_ACCESS_TOKEN: 'pk.eyJ1Ijoiam9obm1wdWdoIiwiYSI6ImNtY3M1ZmF1azB5MWsycXExamgxeWtiNHIifQ.zleonCiAVAkRV-CuOXCe2g',
+        GOOGLE_MAPS_API_KEY: 'AIzaSyBXa54V_7ruPUEWBHXcKMODpH2J2lmQorA',
         
         // Real-time Weather Alerts
         // WEATHER_ALERTS_API_KEY: 'your_weather_alerts_key_here'

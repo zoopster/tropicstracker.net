@@ -561,15 +561,14 @@ class WeatherDataManager {
      * Get fallback wind layer configuration
      */
     getFallbackWindLayer(bounds) {
+        const owmKey = this.config.WEATHER_APIS?.OPENWEATHER_API_KEY || '9e5cc90e8cd2b34cabc906523a697644';
         return {
-            type: 'vector',
-            url: 'https://earth.nullschool.net/api/v1/winds/current',
-            attribution: 'earth.nullschool.net Wind Data (Fallback)',
+            type: 'tile',
+            url: `https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=${owmKey}`,
+            attribution: 'OpenWeatherMap Wind Data (One Call API 3.0)',
             opacity: 0.8,
             bounds: bounds,
-            timestamp: new Date().toISOString(),
-            windScale: this.getWindScale(),
-            particleCount: 3000
+            timestamp: new Date().toISOString()
         };
     }
 
@@ -577,15 +576,14 @@ class WeatherDataManager {
      * Get fallback pressure layer configuration
      */
     getFallbackPressureLayer(bounds) {
+        const owmKey = this.config.WEATHER_APIS?.OPENWEATHER_API_KEY || '9e5cc90e8cd2b34cabc906523a697644';
         return {
-            type: 'contour',
-            url: 'https://earth.nullschool.net/api/v1/pressure/current',
-            attribution: 'earth.nullschool.net Pressure Data (Fallback)',
+            type: 'tile',
+            url: `https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png?appid=${owmKey}`,
+            attribution: 'OpenWeatherMap Pressure Data (One Call API 3.0)',
             opacity: 0.5,
             bounds: bounds,
-            timestamp: new Date().toISOString(),
-            contourLines: this.getPressureContours(),
-            colorMap: this.getPressureColorMap()
+            timestamp: new Date().toISOString()
         };
     }
 
@@ -593,15 +591,14 @@ class WeatherDataManager {
      * Get fallback sea temperature layer configuration
      */
     getFallbackSeaTempLayer(bounds) {
+        const owmKey = this.config.WEATHER_APIS?.OPENWEATHER_API_KEY || '9e5cc90e8cd2b34cabc906523a697644';
         return {
-            type: 'heatmap',
-            url: 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/jplMURSST41.png',
-            attribution: 'NOAA Sea Surface Temperature (Fallback)',
+            type: 'tile',
+            url: `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${owmKey}`,
+            attribution: 'OpenWeatherMap Temperature Data (One Call API 3.0)',
             opacity: 0.6,
             bounds: bounds,
-            timestamp: new Date().toISOString(),
-            temperatureScale: this.getSeaTempScale(),
-            colorMap: this.getSeaTempColorMap()
+            timestamp: new Date().toISOString()
         };
     }
 
@@ -718,15 +715,18 @@ class WeatherDataManager {
     }
 
     getFallbackWindUrl() {
-        return 'https://earth.nullschool.net/api/v1/winds/current';
+        const owmKey = this.config.WEATHER_APIS?.OPENWEATHER_API_KEY || '9e5cc90e8cd2b34cabc906523a697644';
+        return `https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=${owmKey}`;
     }
 
     getFallbackPressureUrl() {
-        return 'https://earth.nullschool.net/api/v1/pressure/current';
+        const owmKey = this.config.WEATHER_APIS?.OPENWEATHER_API_KEY || '9e5cc90e8cd2b34cabc906523a697644';
+        return `https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png?appid=${owmKey}`;
     }
 
     getFallbackSeaTempUrl() {
-        return 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/jplMURSST41.png';
+        const owmKey = this.config.WEATHER_APIS?.OPENWEATHER_API_KEY || '9e5cc90e8cd2b34cabc906523a697644';
+        return `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${owmKey}`;
     }
 
     /**
