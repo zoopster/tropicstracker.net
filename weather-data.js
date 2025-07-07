@@ -534,8 +534,8 @@ class WeatherDataManager {
     getFallbackSatelliteLayer(bounds) {
         return {
             type: 'tile',
-            url: 'https://cdn.star.nesdis.noaa.gov/GOES16/ABI/CONUS/GEOCOLOR/{z}/{x}/{y}.jpg',
-            attribution: 'NOAA GOES-16 Satellite (Fallback)',
+            url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            attribution: 'ESRI World Imagery (Satellite Fallback)',
             opacity: 0.7,
             bounds: bounds,
             timestamp: new Date().toISOString()
@@ -710,7 +710,7 @@ class WeatherDataManager {
      * Get fallback URLs for various services
      */
     getFallbackSatelliteUrl() {
-        return 'https://cdn.star.nesdis.noaa.gov/GOES16/ABI/CONUS/GEOCOLOR/{z}/{x}/{y}.jpg';
+        return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
     }
 
     getFallbackRadarUrl() {

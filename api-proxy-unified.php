@@ -106,7 +106,7 @@ $API_ENDPOINTS = [
     'hurdat2' => 'https://www.aoml.noaa.gov/hrd/hurdat/hurdat2.txt',
     'weatherapi' => 'https://api.weatherapi.com/v1/current.json',
     // Weather imagery endpoints
-    'goes-satellite' => 'https://cdn.star.nesdis.noaa.gov/GOES16/ABI/CONUS/GEOCOLOR',
+    'goes-satellite' => 'https://mapservices.weather.noaa.gov/raster/rest/services/obs/goes16_conus_geocolor/ImageServer',
     'nexrad-radar' => 'https://mapservices.weather.noaa.gov/eventdriven/rest/services/radar/radar_base_reflectivity_time/ImageServer',
     'wind-data' => 'https://earth.nullschool.net/api/v1/winds/current',
     'pressure-data' => 'https://earth.nullschool.net/api/v1/pressure/current',
@@ -633,19 +633,20 @@ function buildWeatherImageryResponse($endpoint, $params, $base_url) {
         case 'goes-satellite':
             return [
                 'type' => 'tile',
-                'tileUrl' => $base_url . '/{z}/{x}/{y}.jpg',
-                'attribution' => 'NOAA GOES-16/18 Satellite',
+                'tileUrl' => 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                'attribution' => 'ESRI World Imagery (High-Resolution Satellite)',
                 'opacity' => 0.7,
                 'bounds' => parseBounds($params['bounds'] ?? ''),
                 'timestamp' => $timestamp,
-                'maxZoom' => 10,
-                'minZoom' => 3
+                'maxZoom' => 18,
+                'minZoom' => 1,
+                'note' => 'Using reliable ESRI satellite imagery service'
             ];
         case 'nexrad-radar':
             return [
                 'type' => 'tile',
-                'tileUrl' => $base_url . '/tile/{z}/{y}/{x}',
-                'attribution' => 'NOAA NEXRAD Radar',
+                'tileUrl' => 'https://tilecache.rainviewer.com/v2/radar/' . (time() - 600) . '/256/{z}/{x}/{y}/2/1_1.png',
+                'attribution' => 'RainViewer Radar Data',
                 'opacity' => 0.6,
                 'bounds' => parseBounds($params['bounds'] ?? ''),
                 'timestamp' => $timestamp,
@@ -713,25 +714,33 @@ function buildWeatherImageryFallback($endpoint) {
         case 'goes-satellite':
             return [
                 'type' => 'tile',
-                'tileUrl' => 'https://cdn.star.nesdis.noaa.gov/GOES16/ABI/CONUS/GEOCOLOR/{z}/{x}/{y}.jpg',
-                'attribution' => 'NOAA GOES-16 Satellite (Fallback)',
+                'tileUrl' => 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                'attribution' => 'ESRI World Imagery (Satellite Fallback)',
                 'opacity' => 0.7,
                 'bounds' => [[-90, -180], [90, 180]],
                 'timestamp' => $timestamp,
-                'maxZoom' => 10,
-                'minZoom' => 3
+                'maxZoom' => 18,
+                'minZoom' => 1,
+                'backup_sources' => [
+                    'https://mapservices.weather.noaa.gov/raster/rest/services/obs/goes16_conus_geocolor/ImageServer/tile/{z}/{y}/{x}',
+                    'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'
+                ]
             ];
         case 'nexrad-radar':
             return [
                 'type' => 'tile',
-                'tileUrl' => 'https://mapservices.weather.noaa.gov/eventdriven/rest/services/radar/radar_base_reflectivity_time/ImageServer/tile/{z}/{y}/{x}',
-                'attribution' => 'NOAA NEXRAD Radar (Fallback)',
+                'tileUrl' => 'https://tilecache.rainviewer.com/v2/radar/' . (time() - 600) . '/256/{z}/{x}/{y}/2/1_1.png',
+                'attribution' => 'RainViewer Radar (Fallback)',
                 'opacity' => 0.6,
                 'bounds' => [[-90, -180], [90, 180]],
                 'timestamp' => $timestamp,
                 'maxZoom' => 12,
                 'minZoom' => 3,
-                'colorMap' => getRadarColorMap()
+                'colorMap' => getRadarColorMap(),
+                'backup_sources' => [
+                    'https://mapservices.weather.noaa.gov/eventdriven/rest/services/radar/radar_base_reflectivity_time/ImageServer/tile/{z}/{y}/{x}',
+                    'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png'
+                ]
             ];
         default:
             return ['error' => 'Unknown imagery endpoint'];
