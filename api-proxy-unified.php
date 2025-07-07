@@ -511,6 +511,16 @@ function getFallbackData($endpoint) {
                     ]
                 ]
             ];
+        case 'goes-satellite':
+            return buildWeatherImageryFallback('goes-satellite');
+        case 'nexrad-radar':
+            return buildWeatherImageryFallback('nexrad-radar');
+        case 'wind-data':
+            return buildWeatherDataFallback('wind-data');
+        case 'pressure-data':
+            return buildWeatherDataFallback('pressure-data');
+        case 'sea-temp-data':
+            return buildWeatherDataFallback('sea-temp-data');
         default:
             return ['error' => 'Service temporarily unavailable'];
     }
@@ -589,5 +599,270 @@ function respondWithError($message, $code = 400, $extra = []) {
     
     echo json_encode($response);
     exit;
+}
+
+/**
+ * Build weather imagery response for tile services
+ */
+function buildWeatherImageryResponse($endpoint, $params, $base_url) {
+    $timestamp = date('c');
+    
+    switch ($endpoint) {
+        case 'goes-satellite':
+            return [
+                'type' => 'tile',
+                'tileUrl' => $base_url . '/{z}/{x}/{y}.jpg',
+                'attribution' => 'NOAA GOES-16/18 Satellite',
+                'opacity' => 0.7,
+                'bounds' => parseBounds($params['bounds'] ?? ''),
+                'timestamp' => $timestamp,
+                'maxZoom' => 10,
+                'minZoom' => 3
+            ];
+        case 'nexrad-radar':
+            return [
+                'type' => 'tile',
+                'tileUrl' => $base_url . '/{z}/{x}/{y}.png',
+                'attribution' => 'NOAA NEXRAD Radar',
+                'opacity' => 0.6,
+                'bounds' => parseBounds($params['bounds'] ?? ''),
+                'timestamp' => $timestamp,
+                'maxZoom' => 12,
+                'minZoom' => 3,
+                'colorMap' => getRadarColorMap()
+            ];
+        default:
+            return ['error' => 'Unknown imagery endpoint'];
+    }
+}
+
+/**
+ * Build weather data response for vector/analysis data
+ */
+function buildWeatherDataResponse($endpoint, $params, $base_url) {
+    $timestamp = date('c');
+    
+    switch ($endpoint) {
+        case 'wind-data':
+            return [
+                'type' => 'vector',
+                'vectorUrl' => $base_url,
+                'attribution' => 'earth.nullschool.net Wind Data',
+                'opacity' => 0.8,
+                'bounds' => parseBounds($params['bounds'] ?? ''),
+                'timestamp' => $timestamp,
+                'windScale' => getWindScale(),
+                'particleCount' => 5000
+            ];
+        case 'pressure-data':
+            return [
+                'type' => 'contour',
+                'contourUrl' => $base_url,
+                'attribution' => 'earth.nullschool.net Pressure Data',
+                'opacity' => 0.5,
+                'bounds' => parseBounds($params['bounds'] ?? ''),
+                'timestamp' => $timestamp,
+                'contourLines' => getPressureContours(),
+                'colorMap' => getPressureColorMap()
+            ];
+        case 'sea-temp-data':
+            return [
+                'type' => 'heatmap',
+                'heatmapUrl' => $base_url,
+                'attribution' => 'NOAA Sea Surface Temperature',
+                'opacity' => 0.6,
+                'bounds' => parseBounds($params['bounds'] ?? ''),
+                'timestamp' => $timestamp,
+                'temperatureScale' => getSeaTempScale(),
+                'colorMap' => getSeaTempColorMap()
+            ];
+        default:
+            return ['error' => 'Unknown weather data endpoint'];
+    }
+}
+
+/**
+ * Build fallback responses for weather imagery
+ */
+function buildWeatherImageryFallback($endpoint) {
+    $timestamp = date('c');
+    
+    switch ($endpoint) {
+        case 'goes-satellite':
+            return [
+                'type' => 'tile',
+                'tileUrl' => 'https://cdn.star.nesdis.noaa.gov/GOES16/ABI/CONUS/GEOCOLOR/{z}/{x}/{y}.jpg',
+                'attribution' => 'NOAA GOES-16 Satellite (Fallback)',
+                'opacity' => 0.7,
+                'bounds' => [[-90, -180], [90, 180]],
+                'timestamp' => $timestamp,
+                'maxZoom' => 10,
+                'minZoom' => 3
+            ];
+        case 'nexrad-radar':
+            return [
+                'type' => 'tile',
+                'tileUrl' => 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png',
+                'attribution' => 'Iowa State Mesonet NEXRAD (Fallback)',
+                'opacity' => 0.6,
+                'bounds' => [[-90, -180], [90, 180]],
+                'timestamp' => $timestamp,
+                'maxZoom' => 12,
+                'minZoom' => 3,
+                'colorMap' => getRadarColorMap()
+            ];
+        default:
+            return ['error' => 'Unknown imagery endpoint'];
+    }
+}
+
+/**
+ * Build fallback responses for weather data
+ */
+function buildWeatherDataFallback($endpoint) {
+    $timestamp = date('c');
+    
+    switch ($endpoint) {
+        case 'wind-data':
+            return [
+                'type' => 'vector',
+                'vectorUrl' => 'https://earth.nullschool.net/api/v1/winds/current',
+                'attribution' => 'earth.nullschool.net Wind Data (Fallback)',
+                'opacity' => 0.8,
+                'bounds' => [[-90, -180], [90, 180]],
+                'timestamp' => $timestamp,
+                'windScale' => getWindScale(),
+                'particleCount' => 3000
+            ];
+        case 'pressure-data':
+            return [
+                'type' => 'contour',
+                'contourUrl' => 'https://earth.nullschool.net/api/v1/pressure/current',
+                'attribution' => 'earth.nullschool.net Pressure Data (Fallback)',
+                'opacity' => 0.5,
+                'bounds' => [[-90, -180], [90, 180]],
+                'timestamp' => $timestamp,
+                'contourLines' => getPressureContours(),
+                'colorMap' => getPressureColorMap()
+            ];
+        case 'sea-temp-data':
+            return [
+                'type' => 'heatmap',
+                'heatmapUrl' => 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/jplMURSST41.png',
+                'attribution' => 'NOAA Sea Surface Temperature (Fallback)',
+                'opacity' => 0.6,
+                'bounds' => [[-90, -180], [90, 180]],
+                'timestamp' => $timestamp,
+                'temperatureScale' => getSeaTempScale(),
+                'colorMap' => getSeaTempColorMap()
+            ];
+        default:
+            return ['error' => 'Unknown weather data endpoint'];
+    }
+}
+
+/**
+ * Parse bounds parameter
+ */
+function parseBounds($boundsString) {
+    if (empty($boundsString)) {
+        return [[-90, -180], [90, 180]]; // Global bounds
+    }
+    
+    $coords = explode(',', $boundsString);
+    if (count($coords) === 4) {
+        return [
+            [floatval($coords[0]), floatval($coords[1])], // SW corner
+            [floatval($coords[2]), floatval($coords[3])]  // NE corner
+        ];
+    }
+    
+    return [[-90, -180], [90, 180]]; // Default to global
+}
+
+/**
+ * Weather overlay color maps and scales
+ */
+function getRadarColorMap() {
+    return [
+        0 => '#00000000',    // Transparent (no precipitation)
+        5 => '#00ff0080',    // Light green (light rain)
+        10 => '#00ff0080',   // Green (light rain)
+        15 => '#ffff0080',   // Yellow (moderate rain)
+        20 => '#ff800080',   // Orange (heavy rain)
+        25 => '#ff000080',   // Red (very heavy rain)
+        30 => '#ff00ff80',   // Magenta (extreme rain)
+        35 => '#ffffff80'    // White (hail/snow)
+    ];
+}
+
+function getWindScale() {
+    return [
+        'min' => 0,
+        'max' => 200,
+        'colors' => [
+            '#3288bd',  // Light blue (0-25 mph)
+            '#99d594',  // Light green (25-50 mph)
+            '#e6f598',  // Yellow-green (50-75 mph)
+            '#fee08b',  // Yellow (75-100 mph)
+            '#fc8d59',  // Orange (100-125 mph)
+            '#d53e4f'   // Red (125+ mph)
+        ]
+    ];
+}
+
+function getPressureContours() {
+    return [
+        'interval' => 4,  // 4 mb intervals
+        'minValue' => 960,
+        'maxValue' => 1040,
+        'colors' => [
+            'low' => '#ff0000',    // Red for low pressure
+            'normal' => '#00ff00', // Green for normal pressure
+            'high' => '#0000ff'    // Blue for high pressure
+        ]
+    ];
+}
+
+function getPressureColorMap() {
+    return [
+        960 => '#800080',  // Purple (extreme low)
+        980 => '#ff0000',  // Red (low)
+        1000 => '#ffff00', // Yellow (normal low)
+        1013 => '#00ff00', // Green (sea level)
+        1020 => '#00ffff', // Cyan (normal high)
+        1030 => '#0000ff', // Blue (high)
+        1040 => '#000080'  // Navy (extreme high)
+    ];
+}
+
+function getSeaTempScale() {
+    return [
+        'min' => -2,   // Celsius
+        'max' => 35,   // Celsius
+        'units' => 'C',
+        'colors' => [
+            '#000080',  // Navy (freezing)
+            '#0000ff',  // Blue (cold)
+            '#00ffff',  // Cyan (cool)
+            '#00ff00',  // Green (moderate)
+            '#ffff00',  // Yellow (warm)
+            '#ff8000',  // Orange (hot)
+            '#ff0000'   // Red (very hot)
+        ]
+    ];
+}
+
+function getSeaTempColorMap() {
+    return [
+        '-2' => '#000080',  // Navy (freezing)
+        '5' => '#0000ff',   // Blue (cold)
+        '10' => '#00ffff',  // Cyan (cool)
+        '15' => '#00ff00',  // Green (moderate)
+        '20' => '#ffff00',  // Yellow (warm)
+        '25' => '#ff8000',  // Orange (hot)
+        '30' => '#ff0000',  // Red (very hot)
+        '35' => '#800000'   // Maroon (extreme)
+    ];
 }
 ?>

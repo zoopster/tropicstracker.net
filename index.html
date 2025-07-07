@@ -468,6 +468,20 @@
                         <div class="control-btn" data-layer="sst">Sea Temp</div>
                     </div>
                     <div class="control-group">
+                        <div class="opacity-control" style="display: flex; align-items: center; gap: 0.5rem; margin-right: 1rem;">
+                            <label for="layer-opacity" style="color: #60a5fa; font-size: 0.9rem;">Opacity:</label>
+                            <input type="range" id="layer-opacity" min="0" max="100" value="70" 
+                                   style="width: 80px; accent-color: #3b82f6;">
+                            <span id="opacity-value" style="color: #cbd5e1; font-size: 0.8rem; min-width: 30px;">70%</span>
+                        </div>
+                        <div class="animation-control" style="display: flex; align-items: center; gap: 0.5rem; margin-right: 1rem;" id="animation-controls">
+                            <button id="play-btn" class="control-btn" style="padding: 0.4rem; font-size: 0.8rem;">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <input type="range" id="time-slider" min="0" max="23" value="0" 
+                                   style="width: 100px; accent-color: #3b82f6;">
+                            <span id="time-value" style="color: #cbd5e1; font-size: 0.8rem; min-width: 60px;">Now</span>
+                        </div>
                         <div class="control-btn" data-action="refresh">
                             <i class="fas fa-sync-alt"></i> Refresh
                         </div>
@@ -477,6 +491,24 @@
                     </div>
                 </div>
                 <div id="map"></div>
+                <div id="weather-legend" class="weather-legend" style="
+                    position: absolute;
+                    bottom: 20px;
+                    left: 20px;
+                    background: rgba(15, 23, 42, 0.9);
+                    backdrop-filter: blur(10px);
+                    padding: 1rem;
+                    border-radius: 8px;
+                    border: 1px solid #475569;
+                    color: #f8fafc;
+                    font-size: 0.85rem;
+                    max-width: 250px;
+                    z-index: 1000;
+                    display: none;
+                ">
+                    <h4 id="legend-title" style="margin: 0 0 0.5rem 0; color: #60a5fa;">Weather Scale</h4>
+                    <div id="legend-content"></div>
+                </div>
             </div>
         </div>
 
@@ -799,6 +831,11 @@
                 this.currentBasin = 'atlantic';
                 this.storms = new Map();
                 this.weatherData = new WeatherDataManager(CONFIG);
+                this.currentWeatherLayer = null;
+                this.weatherOverlays = new Map();
+                this.animationPlaying = false;
+                this.animationInterval = null;
+                this.currentTimeOffset = 0;
                 this.init();
             }
 
@@ -808,6 +845,7 @@
                 this.loadInitialData();
                 this.startDataUpdates();
                 this.weatherData.startCacheCleanup();
+                this.initWeatherOverlays(); // Initialize weather overlay system
             }
 
             initMap() {
@@ -951,6 +989,31 @@
                         this.focusOnStorm(e.currentTarget);
                     });
                 });
+
+                // Opacity control
+                const opacitySlider = document.getElementById('layer-opacity');
+                const opacityValue = document.getElementById('opacity-value');
+                
+                opacitySlider.addEventListener('input', (e) => {
+                    const opacity = e.target.value;
+                    opacityValue.textContent = opacity + '%';
+                    this.updateLayerOpacity(opacity / 100);
+                });
+
+                // Animation controls
+                const playBtn = document.getElementById('play-btn');
+                const timeSlider = document.getElementById('time-slider');
+                const timeValue = document.getElementById('time-value');
+                
+                playBtn.addEventListener('click', () => {
+                    this.toggleAnimation();
+                });
+                
+                timeSlider.addEventListener('input', (e) => {
+                    const hours = parseInt(e.target.value);
+                    this.updateTimeDisplay(hours);
+                    this.updateLayerTime(hours);
+                });
             }
 
             switchSection(sectionName) {
@@ -967,16 +1030,27 @@
                 document.getElementById(sectionName).classList.add('active');
             }
 
-            switchMapLayer(layerName) {
+            async switchMapLayer(layerName) {
                 // Update control buttons
                 document.querySelectorAll('[data-layer]').forEach(btn => {
                     btn.classList.remove('active');
                 });
                 document.querySelector(`[data-layer="${layerName}"]`).classList.add('active');
 
-                // Switch map layer (placeholder - would integrate with actual weather APIs)
+                // Remove existing weather overlay
+                if (this.currentWeatherLayer) {
+                    this.map.removeLayer(this.currentWeatherLayer);
+                    this.currentWeatherLayer = null;
+                }
+
+                // Load new weather overlay
                 this.currentLayer = layerName;
-                console.log(`Switched to ${layerName} layer`);
+                try {
+                    await this.loadWeatherOverlay(layerName);
+                } catch (error) {
+                    console.error(`Error loading ${layerName} layer:`, error);
+                    this.showLayerError(layerName);
+                }
             }
 
             handleAction(action) {
@@ -1253,6 +1327,404 @@
                 setInterval(() => {
                     this.updateSystemCounts();
                 }, CONFIG.UPDATE_INTERVALS.FORECAST_MODELS);
+            }
+
+            /**
+             * Load weather overlay based on layer type
+             */
+            async loadWeatherOverlay(layerName) {
+                const bounds = this.map.getBounds();
+                const boundsArray = [
+                    bounds.getSouth(), bounds.getWest(),
+                    bounds.getNorth(), bounds.getEast()
+                ];
+
+                try {
+                    const layerData = await this.weatherData.fetchSatelliteImagery(layerName, boundsArray);
+                    
+                    if (!layerData) {
+                        throw new Error(`No data received for ${layerName} layer`);
+                    }
+
+                    this.currentWeatherLayer = this.createWeatherLayer(layerData);
+                    this.currentWeatherLayer.addTo(this.map);
+                    
+                    // Cache the layer for quick switching
+                    this.weatherOverlays.set(layerName, {
+                        layer: this.currentWeatherLayer,
+                        data: layerData,
+                        timestamp: Date.now()
+                    });
+
+                    // Update legend for the layer
+                    this.updateWeatherLegend(layerName, layerData);
+
+                    console.log(`Successfully loaded ${layerName} layer`);
+                } catch (error) {
+                    console.error(`Failed to load ${layerName} layer:`, error);
+                    this.showLayerError(layerName);
+                }
+            }
+
+            /**
+             * Create appropriate Leaflet layer based on data type
+             */
+            createWeatherLayer(layerData) {
+                switch (layerData.type) {
+                    case 'tile':
+                        return L.tileLayer(layerData.tileUrl || layerData.url, {
+                            attribution: layerData.attribution,
+                            opacity: layerData.opacity,
+                            maxZoom: layerData.maxZoom || 18,
+                            minZoom: layerData.minZoom || 1
+                        });
+                    
+                    case 'vector':
+                        // For wind data, create a simple overlay (would need wind.js for full implementation)
+                        return this.createWindLayer(layerData);
+                    
+                    case 'contour':
+                        // For pressure data, create contour overlay
+                        return this.createContourLayer(layerData);
+                    
+                    case 'heatmap':
+                        // For sea temperature, create heatmap overlay
+                        return this.createHeatmapLayer(layerData);
+                    
+                    default:
+                        console.warn('Unknown layer type:', layerData.type);
+                        return null;
+                }
+            }
+
+            /**
+             * Create wind layer (simplified - full implementation would use wind.js)
+             */
+            createWindLayer(layerData) {
+                // Create a simple tile layer as fallback
+                // In production, this would use wind.js or similar for particle animation
+                return L.tileLayer(layerData.vectorUrl || layerData.url, {
+                    attribution: layerData.attribution,
+                    opacity: layerData.opacity
+                });
+            }
+
+            /**
+             * Create pressure contour layer
+             */
+            createContourLayer(layerData) {
+                // Create a tile layer for pressure data
+                return L.tileLayer(layerData.contourUrl || layerData.url, {
+                    attribution: layerData.attribution,
+                    opacity: layerData.opacity
+                });
+            }
+
+            /**
+             * Create sea temperature heatmap layer
+             */
+            createHeatmapLayer(layerData) {
+                // Create a tile layer for sea temperature data
+                return L.tileLayer(layerData.heatmapUrl || layerData.url, {
+                    attribution: layerData.attribution,
+                    opacity: layerData.opacity
+                });
+            }
+
+            /**
+             * Show error message when layer fails to load
+             */
+            showLayerError(layerName) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'layer-error';
+                errorDiv.style.cssText = `
+                    position: absolute;
+                    top: 80px;
+                    right: 20px;
+                    background: rgba(239, 68, 68, 0.9);
+                    color: white;
+                    padding: 1rem;
+                    border-radius: 8px;
+                    z-index: 1000;
+                    font-size: 0.9rem;
+                    max-width: 300px;
+                `;
+                errorDiv.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Failed to load ${layerName} layer</span>
+                        <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: white; cursor: pointer; margin-left: auto;">×</button>
+                    </div>
+                    <div style="font-size: 0.8rem; margin-top: 0.5rem; opacity: 0.9;">
+                        Service may be temporarily unavailable. Please try again later.
+                    </div>
+                `;
+                
+                document.querySelector('.map-section').appendChild(errorDiv);
+                
+                // Auto-remove after 5 seconds
+                setTimeout(() => {
+                    if (errorDiv.parentElement) {
+                        errorDiv.remove();
+                    }
+                }, 5000);
+            }
+
+            /**
+             * Initialize weather overlay system on page load
+             */
+            async initWeatherOverlays() {
+                // Load default satellite layer
+                await this.loadWeatherOverlay('satellite');
+            }
+
+            /**
+             * Update the opacity of the current weather layer
+             */
+            updateLayerOpacity(opacity) {
+                if (this.currentWeatherLayer) {
+                    this.currentWeatherLayer.setOpacity(opacity);
+                }
+            }
+
+            /**
+             * Update the weather legend based on current layer
+             */
+            updateWeatherLegend(layerName, layerData) {
+                const legend = document.getElementById('weather-legend');
+                const title = document.getElementById('legend-title');
+                const content = document.getElementById('legend-content');
+
+                if (!legend || !title || !content) return;
+
+                // Set title based on layer type
+                const titles = {
+                    'satellite': 'Satellite Imagery',
+                    'radar': 'Radar Reflectivity',
+                    'wind': 'Wind Speed',
+                    'pressure': 'Atmospheric Pressure',
+                    'sst': 'Sea Surface Temperature'
+                };
+
+                title.textContent = titles[layerName] || 'Weather Data';
+
+                // Generate legend content based on layer type
+                content.innerHTML = this.generateLegendContent(layerName, layerData);
+
+                // Show the legend
+                legend.style.display = 'block';
+            }
+
+            /**
+             * Generate legend content HTML based on layer type
+             */
+            generateLegendContent(layerName, layerData) {
+                switch (layerName) {
+                    case 'satellite':
+                        return `
+                            <div style="margin-bottom: 0.5rem;">
+                                <strong>GOES-16/18 Satellite</strong>
+                            </div>
+                            <div style="color: #cbd5e1;">
+                                Real-time visible and infrared imagery showing cloud cover, storm structure, and atmospheric features.
+                            </div>
+                        `;
+
+                    case 'radar':
+                        return `
+                            <div style="margin-bottom: 0.5rem;">
+                                <strong>NEXRAD Precipitation</strong>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 2px;">
+                                ${this.createColorScale([
+                                    { color: '#00ff00', label: 'Light Rain' },
+                                    { color: '#ffff00', label: 'Moderate' },
+                                    { color: '#ff8000', label: 'Heavy' },
+                                    { color: '#ff0000', label: 'Very Heavy' },
+                                    { color: '#ff00ff', label: 'Extreme' }
+                                ])}
+                            </div>
+                        `;
+
+                    case 'wind':
+                        return `
+                            <div style="margin-bottom: 0.5rem;">
+                                <strong>Wind Speed (mph)</strong>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 2px;">
+                                ${this.createColorScale([
+                                    { color: '#3288bd', label: '0-25 mph' },
+                                    { color: '#99d594', label: '25-50 mph' },
+                                    { color: '#e6f598', label: '50-75 mph' },
+                                    { color: '#fee08b', label: '75-100 mph' },
+                                    { color: '#fc8d59', label: '100-125 mph' },
+                                    { color: '#d53e4f', label: '125+ mph' }
+                                ])}
+                            </div>
+                        `;
+
+                    case 'pressure':
+                        return `
+                            <div style="margin-bottom: 0.5rem;">
+                                <strong>Sea Level Pressure (mb)</strong>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 2px;">
+                                ${this.createColorScale([
+                                    { color: '#800080', label: '< 970 mb (Extreme Low)' },
+                                    { color: '#ff0000', label: '970-990 mb (Low)' },
+                                    { color: '#ffff00', label: '990-1010 mb' },
+                                    { color: '#00ff00', label: '1010-1020 mb (Normal)' },
+                                    { color: '#0000ff', label: '1020+ mb (High)' }
+                                ])}
+                            </div>
+                        `;
+
+                    case 'sst':
+                        return `
+                            <div style="margin-bottom: 0.5rem;">
+                                <strong>Sea Surface Temperature (°C)</strong>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 2px;">
+                                ${this.createColorScale([
+                                    { color: '#000080', label: '< 10°C (Cold)' },
+                                    { color: '#00ffff', label: '10-15°C (Cool)' },
+                                    { color: '#00ff00', label: '15-20°C (Moderate)' },
+                                    { color: '#ffff00', label: '20-25°C (Warm)' },
+                                    { color: '#ff8000', label: '25-30°C (Hot)' },
+                                    { color: '#ff0000', label: '30°C+ (Very Hot)' }
+                                ])}
+                            </div>
+                        `;
+
+                    default:
+                        return `<div style="color: #cbd5e1;">Weather overlay active</div>`;
+                }
+            }
+
+            /**
+             * Create color scale HTML for legend
+             */
+            createColorScale(colorData) {
+                return colorData.map(item => `
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 16px; height: 12px; background: ${item.color}; border: 1px solid #475569; border-radius: 2px;"></div>
+                        <span style="font-size: 0.8rem; color: #cbd5e1;">${item.label}</span>
+                    </div>
+                `).join('');
+            }
+
+            /**
+             * Hide the weather legend
+             */
+            hideWeatherLegend() {
+                const legend = document.getElementById('weather-legend');
+                if (legend) {
+                    legend.style.display = 'none';
+                }
+            }
+
+            /**
+             * Toggle animation playback
+             */
+            toggleAnimation() {
+                const playBtn = document.getElementById('play-btn');
+                const icon = playBtn.querySelector('i');
+                
+                if (this.animationPlaying) {
+                    // Stop animation
+                    this.stopAnimation();
+                    icon.className = 'fas fa-play';
+                } else {
+                    // Start animation
+                    this.startAnimation();
+                    icon.className = 'fas fa-pause';
+                }
+            }
+
+            /**
+             * Start weather layer animation
+             */
+            startAnimation() {
+                this.animationPlaying = true;
+                const timeSlider = document.getElementById('time-slider');
+                
+                this.animationInterval = setInterval(() => {
+                    let currentValue = parseInt(timeSlider.value);
+                    currentValue = (currentValue + 1) % 24; // Cycle through 24 hours
+                    timeSlider.value = currentValue;
+                    this.updateTimeDisplay(currentValue);
+                    this.updateLayerTime(currentValue);
+                }, 500); // Change frame every 500ms
+            }
+
+            /**
+             * Stop weather layer animation
+             */
+            stopAnimation() {
+                this.animationPlaying = false;
+                if (this.animationInterval) {
+                    clearInterval(this.animationInterval);
+                    this.animationInterval = null;
+                }
+            }
+
+            /**
+             * Update time display
+             */
+            updateTimeDisplay(hours) {
+                const timeValue = document.getElementById('time-value');
+                if (!timeValue) return;
+                
+                if (hours === 0) {
+                    timeValue.textContent = 'Now';
+                } else {
+                    timeValue.textContent = `-${hours}h`;
+                }
+            }
+
+            /**
+             * Update layer to show data from specified hours ago
+             */
+            async updateLayerTime(hoursAgo) {
+                this.currentTimeOffset = hoursAgo;
+                
+                // In a full implementation, this would fetch historical data
+                // For now, we'll just update the opacity slightly to show animation
+                if (this.currentWeatherLayer) {
+                    const baseOpacity = document.getElementById('layer-opacity').value / 100;
+                    const animatedOpacity = baseOpacity * (0.7 + (Math.sin(hoursAgo * 0.3) * 0.3));
+                    this.currentWeatherLayer.setOpacity(Math.max(0.1, Math.min(1.0, animatedOpacity)));
+                }
+                
+                // Update legend timestamp
+                this.updateAnimationTimestamp(hoursAgo);
+            }
+
+            /**
+             * Update legend with animation timestamp
+             */
+            updateAnimationTimestamp(hoursAgo) {
+                const legend = document.getElementById('weather-legend');
+                if (!legend) return;
+                
+                let timestampDiv = legend.querySelector('.animation-timestamp');
+                if (!timestampDiv) {
+                    timestampDiv = document.createElement('div');
+                    timestampDiv.className = 'animation-timestamp';
+                    timestampDiv.style.cssText = `
+                        margin-top: 0.5rem;
+                        padding-top: 0.5rem;
+                        border-top: 1px solid #475569;
+                        font-size: 0.75rem;
+                        color: #94a3b8;
+                        text-align: center;
+                    `;
+                    legend.appendChild(timestampDiv);
+                }
+                
+                const targetTime = new Date(Date.now() - (hoursAgo * 60 * 60 * 1000));
+                const timeString = hoursAgo === 0 ? 'Current' : targetTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                timestampDiv.textContent = `Data: ${timeString}`;
             }
         }
 

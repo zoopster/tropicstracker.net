@@ -391,6 +391,345 @@ class WeatherDataManager {
     }
 
     /**
+     * Fetch GOES satellite imagery layer
+     */
+    async fetchSatelliteLayer(bounds) {
+        try {
+            // Use NOAA's GOES-16/18 satellite imagery
+            const endpoint = 'goes-satellite';
+            const url = `api-proxy.php?endpoint=${endpoint}&bounds=${bounds.join(',')}`;
+            
+            const response = await this.fetchWithRetry(url);
+            const data = await response.json();
+            
+            // Return tile layer configuration for GOES imagery
+            return {
+                type: 'tile',
+                url: data.tileUrl || this.getFallbackSatelliteUrl(),
+                attribution: 'NOAA GOES-16/18 Satellite',
+                opacity: 0.7,
+                bounds: bounds,
+                timestamp: data.timestamp || new Date().toISOString()
+            };
+        } catch (error) {
+            console.error('Error fetching satellite layer:', error);
+            return this.getFallbackSatelliteLayer(bounds);
+        }
+    }
+
+    /**
+     * Fetch NEXRAD radar imagery layer
+     */
+    async fetchRadarLayer(bounds) {
+        try {
+            // Use NOAA's NEXRAD radar network
+            const endpoint = 'nexrad-radar';
+            const url = `api-proxy.php?endpoint=${endpoint}&bounds=${bounds.join(',')}`;
+            
+            const response = await this.fetchWithRetry(url);
+            const data = await response.json();
+            
+            return {
+                type: 'tile',
+                url: data.tileUrl || this.getFallbackRadarUrl(),
+                attribution: 'NOAA NEXRAD Radar',
+                opacity: 0.6,
+                bounds: bounds,
+                timestamp: data.timestamp || new Date().toISOString(),
+                colorMap: data.colorMap || this.getRadarColorMap()
+            };
+        } catch (error) {
+            console.error('Error fetching radar layer:', error);
+            return this.getFallbackRadarLayer(bounds);
+        }
+    }
+
+    /**
+     * Fetch wind speed and direction layer
+     */
+    async fetchWindLayer(bounds) {
+        try {
+            // Use GFS wind data from NOAA
+            const endpoint = 'wind-data';
+            const url = `api-proxy.php?endpoint=${endpoint}&bounds=${bounds.join(',')}`;
+            
+            const response = await this.fetchWithRetry(url);
+            const data = await response.json();
+            
+            return {
+                type: 'vector',
+                url: data.vectorUrl || this.getFallbackWindUrl(),
+                attribution: 'NOAA GFS Wind Data',
+                opacity: 0.8,
+                bounds: bounds,
+                timestamp: data.timestamp || new Date().toISOString(),
+                windScale: data.windScale || this.getWindScale(),
+                particleCount: 5000
+            };
+        } catch (error) {
+            console.error('Error fetching wind layer:', error);
+            return this.getFallbackWindLayer(bounds);
+        }
+    }
+
+    /**
+     * Fetch atmospheric pressure layer
+     */
+    async fetchPressureLayer(bounds) {
+        try {
+            // Use GFS pressure data from NOAA
+            const endpoint = 'pressure-data';
+            const url = `api-proxy.php?endpoint=${endpoint}&bounds=${bounds.join(',')}`;
+            
+            const response = await this.fetchWithRetry(url);
+            const data = await response.json();
+            
+            return {
+                type: 'contour',
+                url: data.contourUrl || this.getFallbackPressureUrl(),
+                attribution: 'NOAA GFS Pressure Data',
+                opacity: 0.5,
+                bounds: bounds,
+                timestamp: data.timestamp || new Date().toISOString(),
+                contourLines: data.contourLines || this.getPressureContours(),
+                colorMap: data.colorMap || this.getPressureColorMap()
+            };
+        } catch (error) {
+            console.error('Error fetching pressure layer:', error);
+            return this.getFallbackPressureLayer(bounds);
+        }
+    }
+
+    /**
+     * Fetch sea surface temperature layer
+     */
+    async fetchSeaTempLayer(bounds) {
+        try {
+            // Use RTOFS sea surface temperature data
+            const endpoint = 'sea-temp-data';
+            const url = `api-proxy.php?endpoint=${endpoint}&bounds=${bounds.join(',')}`;
+            
+            const response = await this.fetchWithRetry(url);
+            const data = await response.json();
+            
+            return {
+                type: 'heatmap',
+                url: data.heatmapUrl || this.getFallbackSeaTempUrl(),
+                attribution: 'NOAA RTOFS Sea Surface Temperature',
+                opacity: 0.6,
+                bounds: bounds,
+                timestamp: data.timestamp || new Date().toISOString(),
+                temperatureScale: data.temperatureScale || this.getSeaTempScale(),
+                colorMap: data.colorMap || this.getSeaTempColorMap()
+            };
+        } catch (error) {
+            console.error('Error fetching sea temperature layer:', error);
+            return this.getFallbackSeaTempLayer(bounds);
+        }
+    }
+
+    /**
+     * Get fallback satellite layer configuration
+     */
+    getFallbackSatelliteLayer(bounds) {
+        return {
+            type: 'tile',
+            url: 'https://cdn.star.nesdis.noaa.gov/GOES16/ABI/CONUS/GEOCOLOR/{z}/{x}/{y}.jpg',
+            attribution: 'NOAA GOES-16 Satellite (Fallback)',
+            opacity: 0.7,
+            bounds: bounds,
+            timestamp: new Date().toISOString()
+        };
+    }
+
+    /**
+     * Get fallback radar layer configuration
+     */
+    getFallbackRadarLayer(bounds) {
+        return {
+            type: 'tile',
+            url: 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png',
+            attribution: 'Iowa State Mesonet NEXRAD (Fallback)',
+            opacity: 0.6,
+            bounds: bounds,
+            timestamp: new Date().toISOString(),
+            colorMap: this.getRadarColorMap()
+        };
+    }
+
+    /**
+     * Get fallback wind layer configuration
+     */
+    getFallbackWindLayer(bounds) {
+        return {
+            type: 'vector',
+            url: 'https://earth.nullschool.net/api/v1/winds/current',
+            attribution: 'earth.nullschool.net Wind Data (Fallback)',
+            opacity: 0.8,
+            bounds: bounds,
+            timestamp: new Date().toISOString(),
+            windScale: this.getWindScale(),
+            particleCount: 3000
+        };
+    }
+
+    /**
+     * Get fallback pressure layer configuration
+     */
+    getFallbackPressureLayer(bounds) {
+        return {
+            type: 'contour',
+            url: 'https://earth.nullschool.net/api/v1/pressure/current',
+            attribution: 'earth.nullschool.net Pressure Data (Fallback)',
+            opacity: 0.5,
+            bounds: bounds,
+            timestamp: new Date().toISOString(),
+            contourLines: this.getPressureContours(),
+            colorMap: this.getPressureColorMap()
+        };
+    }
+
+    /**
+     * Get fallback sea temperature layer configuration
+     */
+    getFallbackSeaTempLayer(bounds) {
+        return {
+            type: 'heatmap',
+            url: 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/jplMURSST41.png',
+            attribution: 'NOAA Sea Surface Temperature (Fallback)',
+            opacity: 0.6,
+            bounds: bounds,
+            timestamp: new Date().toISOString(),
+            temperatureScale: this.getSeaTempScale(),
+            colorMap: this.getSeaTempColorMap()
+        };
+    }
+
+    /**
+     * Get radar color mapping
+     */
+    getRadarColorMap() {
+        return {
+            0: '#00000000',    // Transparent (no precipitation)
+            5: '#00ff0080',    // Light green (light rain)
+            10: '#00ff0080',   // Green (light rain)
+            15: '#ffff0080',   // Yellow (moderate rain)
+            20: '#ff800080',   // Orange (heavy rain)
+            25: '#ff000080',   // Red (very heavy rain)
+            30: '#ff00ff80',   // Magenta (extreme rain)
+            35: '#ffffff80'    // White (hail/snow)
+        };
+    }
+
+    /**
+     * Get wind scale configuration
+     */
+    getWindScale() {
+        return {
+            min: 0,
+            max: 200,
+            colors: [
+                '#3288bd',  // Light blue (0-25 mph)
+                '#99d594',  // Light green (25-50 mph)
+                '#e6f598',  // Yellow-green (50-75 mph)
+                '#fee08b',  // Yellow (75-100 mph)
+                '#fc8d59',  // Orange (100-125 mph)
+                '#d53e4f'   // Red (125+ mph)
+            ]
+        };
+    }
+
+    /**
+     * Get pressure contour lines
+     */
+    getPressureContours() {
+        return {
+            interval: 4,  // 4 mb intervals
+            minValue: 960,
+            maxValue: 1040,
+            colors: {
+                low: '#ff0000',    // Red for low pressure
+                normal: '#00ff00', // Green for normal pressure
+                high: '#0000ff'    // Blue for high pressure
+            }
+        };
+    }
+
+    /**
+     * Get pressure color mapping
+     */
+    getPressureColorMap() {
+        return {
+            960: '#800080',  // Purple (extreme low)
+            980: '#ff0000',  // Red (low)
+            1000: '#ffff00', // Yellow (normal low)
+            1013: '#00ff00', // Green (sea level)
+            1020: '#00ffff', // Cyan (normal high)
+            1030: '#0000ff', // Blue (high)
+            1040: '#000080'  // Navy (extreme high)
+        };
+    }
+
+    /**
+     * Get sea temperature scale
+     */
+    getSeaTempScale() {
+        return {
+            min: -2,   // Celsius
+            max: 35,   // Celsius
+            units: 'C',
+            colors: [
+                '#000080',  // Navy (freezing)
+                '#0000ff',  // Blue (cold)
+                '#00ffff',  // Cyan (cool)
+                '#00ff00',  // Green (moderate)
+                '#ffff00',  // Yellow (warm)
+                '#ff8000',  // Orange (hot)
+                '#ff0000'   // Red (very hot)
+            ]
+        };
+    }
+
+    /**
+     * Get sea temperature color mapping
+     */
+    getSeaTempColorMap() {
+        return {
+            '-2': '#000080',  // Navy (freezing)
+            '5': '#0000ff',   // Blue (cold)
+            '10': '#00ffff',  // Cyan (cool)
+            '15': '#00ff00',  // Green (moderate)
+            '20': '#ffff00',  // Yellow (warm)
+            '25': '#ff8000',  // Orange (hot)
+            '30': '#ff0000',  // Red (very hot)
+            '35': '#800000'   // Maroon (extreme)
+        };
+    }
+
+    /**
+     * Get fallback URLs for various services
+     */
+    getFallbackSatelliteUrl() {
+        return 'https://cdn.star.nesdis.noaa.gov/GOES16/ABI/CONUS/GEOCOLOR/{z}/{x}/{y}.jpg';
+    }
+
+    getFallbackRadarUrl() {
+        return 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png';
+    }
+
+    getFallbackWindUrl() {
+        return 'https://earth.nullschool.net/api/v1/winds/current';
+    }
+
+    getFallbackPressureUrl() {
+        return 'https://earth.nullschool.net/api/v1/pressure/current';
+    }
+
+    getFallbackSeaTempUrl() {
+        return 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/jplMURSST41.png';
+    }
+
+    /**
      * Clean up expired cache entries
      */
     cleanupCache() {
