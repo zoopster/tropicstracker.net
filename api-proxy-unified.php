@@ -104,7 +104,13 @@ $API_ENDPOINTS = [
     'nhc-sample' => 'https://www.nhc.noaa.gov/productexamples/NHC_JSON_Sample.json',
     'nws-alerts' => 'https://api.weather.gov/alerts/active',
     'hurdat2' => 'https://www.aoml.noaa.gov/hrd/hurdat/hurdat2.txt',
-    'weatherapi' => 'https://api.weatherapi.com/v1/current.json'
+    'weatherapi' => 'https://api.weatherapi.com/v1/current.json',
+    // Weather imagery endpoints
+    'goes-satellite' => 'https://cdn.star.nesdis.noaa.gov/GOES16/ABI/CONUS/GEOCOLOR',
+    'nexrad-radar' => 'https://mapservices.weather.noaa.gov/eventdriven/rest/services/radar/radar_base_reflectivity_time/ImageServer',
+    'wind-data' => 'https://earth.nullschool.net/api/v1/winds/current',
+    'pressure-data' => 'https://earth.nullschool.net/api/v1/pressure/current',
+    'sea-temp-data' => 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/jplMURSST41.png'
 ];
 
 // Cache handling
@@ -121,14 +127,18 @@ if ($CONFIG['cache_enabled'] && file_exists($cache_file) &&
 
 header('X-Cache: MISS');
 
-// Build API URL
-$api_url = buildApiUrl($endpoint, $params, $API_ENDPOINTS);
+// Build API URL or get metadata for weather imagery
+$api_url_or_data = buildApiUrl($endpoint, $params, $API_ENDPOINTS);
 
-// Make API request
-$response_data = makeApiRequest($api_url, $endpoint, $is_development);
-
-// Process response
-$processed_response = processResponse($endpoint, $response_data);
+// Check if weather imagery endpoint returned metadata directly
+if (is_array($api_url_or_data)) {
+    // Weather imagery endpoints return metadata directly
+    $processed_response = $api_url_or_data;
+} else {
+    // Standard endpoints return URL for API request
+    $response_data = makeApiRequest($api_url_or_data, $endpoint, $is_development);
+    $processed_response = processResponse($endpoint, $response_data);
+}
 
 // Cache response
 if ($CONFIG['cache_enabled']) {
@@ -147,7 +157,10 @@ if (rand(1, 100) === 1) {
  * Validate endpoint
  */
 function validateEndpoint($endpoint) {
-    $valid_endpoints = ['nhc-storms', 'nhc-sample', 'nws-alerts', 'hurdat2', 'weatherapi'];
+    $valid_endpoints = [
+        'nhc-storms', 'nhc-sample', 'nws-alerts', 'hurdat2', 'weatherapi',
+        'goes-satellite', 'nexrad-radar', 'wind-data', 'pressure-data', 'sea-temp-data'
+    ];
     
     if (!is_string($endpoint) || empty($endpoint)) {
         respondWithError('Missing endpoint parameter', 400);
@@ -165,7 +178,7 @@ function validateEndpoint($endpoint) {
  * Validate and sanitize parameters
  */
 function validateParams($get_params, $strict = false) {
-    $allowed_params = ['q', 'area', 'year'];
+    $allowed_params = ['q', 'area', 'year', 'bounds', 'zoom', 'timestamp'];
     $validated = [];
     
     foreach ($get_params as $key => $value) {
@@ -243,6 +256,15 @@ function buildApiUrl($endpoint, $params, $endpoints) {
     
     if ($endpoint === 'nws-alerts' && !empty($params['area'])) {
         $api_url .= '?area=' . urlencode($params['area']);
+    }
+    
+    // Handle weather imagery endpoints - return metadata instead of making HTTP requests
+    if (in_array($endpoint, ['goes-satellite', 'nexrad-radar'])) {
+        return buildWeatherImageryResponse($endpoint, $params, $api_url);
+    }
+    
+    if (in_array($endpoint, ['wind-data', 'pressure-data', 'sea-temp-data'])) {
+        return buildWeatherDataResponse($endpoint, $params, $api_url);
     }
     
     return $api_url;
@@ -622,7 +644,7 @@ function buildWeatherImageryResponse($endpoint, $params, $base_url) {
         case 'nexrad-radar':
             return [
                 'type' => 'tile',
-                'tileUrl' => $base_url . '/{z}/{x}/{y}.png',
+                'tileUrl' => $base_url . '/tile/{z}/{y}/{x}',
                 'attribution' => 'NOAA NEXRAD Radar',
                 'opacity' => 0.6,
                 'bounds' => parseBounds($params['bounds'] ?? ''),
@@ -702,8 +724,8 @@ function buildWeatherImageryFallback($endpoint) {
         case 'nexrad-radar':
             return [
                 'type' => 'tile',
-                'tileUrl' => 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png',
-                'attribution' => 'Iowa State Mesonet NEXRAD (Fallback)',
+                'tileUrl' => 'https://mapservices.weather.noaa.gov/eventdriven/rest/services/radar/radar_base_reflectivity_time/ImageServer/tile/{z}/{y}/{x}',
+                'attribution' => 'NOAA NEXRAD Radar (Fallback)',
                 'opacity' => 0.6,
                 'bounds' => [[-90, -180], [90, 180]],
                 'timestamp' => $timestamp,

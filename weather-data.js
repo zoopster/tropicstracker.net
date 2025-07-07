@@ -47,8 +47,8 @@ class WeatherDataManager {
      */
     async fetchNHCData() {
         const endpoints = [
-            'api-proxy.php?endpoint=nhc-storms',
-            'api-proxy.php?endpoint=nhc-sample'
+            'api-proxy-unified.php?endpoint=nhc-storms',
+            'api-proxy-unified.php?endpoint=nhc-sample'
         ];
 
         const responses = await Promise.allSettled(
@@ -106,7 +106,7 @@ class WeatherDataManager {
      * Fetch storms from OpenWeatherMap
      */
     async fetchOpenWeatherMapStorms() {
-        const url = `api-proxy.php?endpoint=weatherapi&q=25,-75`;
+        const url = `api-proxy-unified.php?endpoint=weatherapi&q=25,-75`;
         
         const response = await this.fetchWithRetry(url);
         const data = await response.json();
@@ -118,7 +118,7 @@ class WeatherDataManager {
      * Fetch storms from RapidAPI
      */
     async fetchRapidAPIStorms() {
-        const url = 'api-proxy.php?endpoint=weatherapi&q=25,-75';
+        const url = 'api-proxy-unified.php?endpoint=weatherapi&q=25,-75';
 
         const response = await this.fetchWithRetry(url);
         const data = await response.json();
@@ -397,7 +397,7 @@ class WeatherDataManager {
         try {
             // Use NOAA's GOES-16/18 satellite imagery
             const endpoint = 'goes-satellite';
-            const url = `api-proxy.php?endpoint=${endpoint}&bounds=${bounds.join(',')}`;
+            const url = `api-proxy-unified.php?endpoint=${endpoint}&bounds=${bounds.join(',')}`;
             
             const response = await this.fetchWithRetry(url);
             const data = await response.json();
@@ -424,7 +424,7 @@ class WeatherDataManager {
         try {
             // Use NOAA's NEXRAD radar network
             const endpoint = 'nexrad-radar';
-            const url = `api-proxy.php?endpoint=${endpoint}&bounds=${bounds.join(',')}`;
+            const url = `api-proxy-unified.php?endpoint=${endpoint}&bounds=${bounds.join(',')}`;
             
             const response = await this.fetchWithRetry(url);
             const data = await response.json();
@@ -451,7 +451,7 @@ class WeatherDataManager {
         try {
             // Use GFS wind data from NOAA
             const endpoint = 'wind-data';
-            const url = `api-proxy.php?endpoint=${endpoint}&bounds=${bounds.join(',')}`;
+            const url = `api-proxy-unified.php?endpoint=${endpoint}&bounds=${bounds.join(',')}`;
             
             const response = await this.fetchWithRetry(url);
             const data = await response.json();
@@ -479,7 +479,7 @@ class WeatherDataManager {
         try {
             // Use GFS pressure data from NOAA
             const endpoint = 'pressure-data';
-            const url = `api-proxy.php?endpoint=${endpoint}&bounds=${bounds.join(',')}`;
+            const url = `api-proxy-unified.php?endpoint=${endpoint}&bounds=${bounds.join(',')}`;
             
             const response = await this.fetchWithRetry(url);
             const data = await response.json();
@@ -507,7 +507,7 @@ class WeatherDataManager {
         try {
             // Use RTOFS sea surface temperature data
             const endpoint = 'sea-temp-data';
-            const url = `api-proxy.php?endpoint=${endpoint}&bounds=${bounds.join(',')}`;
+            const url = `api-proxy-unified.php?endpoint=${endpoint}&bounds=${bounds.join(',')}`;
             
             const response = await this.fetchWithRetry(url);
             const data = await response.json();
@@ -548,8 +548,8 @@ class WeatherDataManager {
     getFallbackRadarLayer(bounds) {
         return {
             type: 'tile',
-            url: 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png',
-            attribution: 'Iowa State Mesonet NEXRAD (Fallback)',
+            url: 'https://mapservices.weather.noaa.gov/eventdriven/rest/services/radar/radar_base_reflectivity_time/ImageServer/tile/{z}/{y}/{x}',
+            attribution: 'NOAA NEXRAD Radar (Fallback)',
             opacity: 0.6,
             bounds: bounds,
             timestamp: new Date().toISOString(),
@@ -714,7 +714,7 @@ class WeatherDataManager {
     }
 
     getFallbackRadarUrl() {
-        return 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png';
+        return 'https://mapservices.weather.noaa.gov/eventdriven/rest/services/radar/radar_base_reflectivity_time/ImageServer/tile/{z}/{y}/{x}';
     }
 
     getFallbackWindUrl() {
