@@ -6,7 +6,8 @@
 # ==============================================================================
 
 # Configuration files with actual API keys
-# config.js - Now safe for public repo (only placeholders)
+config.js
+# config.example.js - example file
 config-production.js
 config-development.js
 config-local.js
