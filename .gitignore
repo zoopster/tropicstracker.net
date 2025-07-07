@@ -185,7 +185,7 @@ docker-compose.local.yml
 # Server configuration  
 nginx.conf
 apache.conf
-# .htaccess - Now safe for public repo (generic config)
+.htaccess
 server-config/
 
 # SSL certificates
