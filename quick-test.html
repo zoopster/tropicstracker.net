@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quick NWS API Test</title>
+</head>
+<body>
+    <h1>API Proxy Test</h1>
+    <button onclick="testNWSAlerts()">Test NWS Alerts</button>
+    <button onclick="testNHCStorms()">Test NHC Storms</button>
+    <button onclick="testProductionProxy()">Test Production Proxy</button>
+    <button onclick="compareProxies()">Compare Dev vs Prod</button>
+    <div id="results" style="margin-top: 20px; padding: 10px; background: #f0f0f0; white-space: pre-wrap; font-family: monospace;"></div>
+
+    <script>
+        async function testNWSAlerts() {
+            const results = document.getElementById('results');
+            results.textContent = 'Testing NWS alerts...';
+            
+            try {
+                const start = performance.now();
+                const response = await fetch('api-proxy.php?endpoint=nws-alerts');
+                const end = performance.now();
+                const data = await response.json();
+                
+                results.textContent = `NWS Alerts Test Results:\n` +
+                    `Status: ${response.status}\n` +
+                    `Response Time: ${Math.round(end - start)}ms\n` +
+                    `Cache: ${response.headers.get('X-Cache') || 'Not set'}\n` +
+                    `Content-Type: ${response.headers.get('Content-Type')}\n` +
+                    `Data Type: ${data.alerts ? 'alerts array' : data.error ? 'error' : 'unknown'}\n` +
+                    `Count: ${data.alerts ? data.alerts.length : 'N/A'}\n\n` +
+                    `Response:\n${JSON.stringify(data, null, 2)}`;
+                    
+            } catch (error) {
+                results.textContent = `NWS test failed: ${error.message}`;
+            }
+        }
+
+        async function testNHCStorms() {
+            const results = document.getElementById('results');
+            results.textContent = 'Testing NHC storms...';
+            
+            try {
+                const start = performance.now();
+                const response = await fetch('api-proxy.php?endpoint=nhc-storms');
+                const end = performance.now();
+                const data = await response.json();
+                
+                results.textContent = `NHC Storms Test Results:\n` +
+                    `Status: ${response.status}\n` +
+                    `Response Time: ${Math.round(end - start)}ms\n` +
+                    `Cache: ${response.headers.get('X-Cache') || 'Not set'}\n` +
+                    `Content-Type: ${response.headers.get('Content-Type')}\n` +
+                    `Data Type: ${data.storms ? 'storms array' : data.error ? 'error' : 'unknown'}\n` +
+                    `Count: ${data.storms ? data.storms.length : 'N/A'}\n\n` +
+                    `Response:\n${JSON.stringify(data, null, 2)}`;
+                    
+            } catch (error) {
+                results.textContent = `NHC test failed: ${error.message}`;
+            }
+        }
+
+        async function testProductionProxy() {
+            const results = document.getElementById('results');
+            results.textContent = 'Testing production proxy...';
+            
+            try {
+                const start = performance.now();
+                const response = await fetch('api-proxy-production.php?endpoint=nws-alerts');
+                const end = performance.now();
+                const data = await response.json();
+                
+                results.textContent = `Production Proxy Test Results:\n` +
+                    `Status: ${response.status}\n` +
+                    `Response Time: ${Math.round(end - start)}ms\n` +
+                    `Cache: ${response.headers.get('X-Cache') || 'Not set'}\n` +
+                    `Content-Type: ${response.headers.get('Content-Type')}\n` +
+                    `Data Type: ${data.alerts ? 'alerts array' : data.error ? 'error' : 'unknown'}\n` +
+                    `Count: ${data.alerts ? data.alerts.length : 'N/A'}\n\n` +
+                    `Response:\n${JSON.stringify(data, null, 2)}`;
+                    
+            } catch (error) {
+                results.textContent = `Production proxy test failed: ${error.message}`;
+            }
+        }
+
+        async function compareProxies() {
+            const results = document.getElementById('results');
+            results.textContent = 'Comparing development vs production proxies...';
+            
+            try {
+                const endpoint = 'nws-alerts';
+                
+                // Test development proxy
+                const devStart = performance.now();
+                const devResponse = await fetch(`api-proxy.php?endpoint=${endpoint}`);
+                const devEnd = performance.now();
+                const devData = await devResponse.json();
+                
+                // Test production proxy
+                const prodStart = performance.now();
+                const prodResponse = await fetch(`api-proxy-production.php?endpoint=${endpoint}`);
+                const prodEnd = performance.now();
+                const prodData = await prodResponse.json();
+                
+                results.textContent = `Proxy Comparison Results:\n\n` +
+                    `DEVELOPMENT PROXY:\n` +
+                    `Status: ${devResponse.status}\n` +
+                    `Response Time: ${Math.round(devEnd - devStart)}ms\n` +
+                    `Cache: ${devResponse.headers.get('X-Cache') || 'Not set'}\n` +
+                    `Data Count: ${devData.alerts ? devData.alerts.length : 'N/A'}\n\n` +
+                    `PRODUCTION PROXY:\n` +
+                    `Status: ${prodResponse.status}\n` +
+                    `Response Time: ${Math.round(prodEnd - prodStart)}ms\n` +
+                    `Cache: ${prodResponse.headers.get('X-Cache') || 'Not set'}\n` +
+                    `Data Count: ${prodData.alerts ? prodData.alerts.length : 'N/A'}\n\n` +
+                    `COMPARISON:\n` +
+                    `Both working: ${devResponse.ok && prodResponse.ok ? '✅' : '❌'}\n` +
+                    `Performance diff: ${Math.round(Math.abs((devEnd - devStart) - (prodEnd - prodStart)))}ms\n` +
+                    `Data consistency: ${JSON.stringify(devData) === JSON.stringify(prodData) ? '✅' : '⚠️'}\n\n` +
+                    `Status: ${devResponse.ok && prodResponse.ok ? 'Both proxies working correctly' : 'Issues detected'}`;
+                    
+            } catch (error) {
+                results.textContent = `Comparison failed: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

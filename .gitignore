@@ -6,10 +6,11 @@
 # ==============================================================================
 
 # Configuration files with actual API keys
-config.js
+# config.js - Now safe for public repo (only placeholders)
 config-production.js
 config-development.js
 config-local.js
+config-live.js
 .env
 .env.local
 .env.development
@@ -180,10 +181,10 @@ docker-compose.prod.yml
 docker-compose.local.yml
 .dockerignore
 
-# Server configuration
+# Server configuration  
 nginx.conf
 apache.conf
-.htaccess
+# .htaccess - Now safe for public repo (generic config)
 server-config/
 
 # SSL certificates

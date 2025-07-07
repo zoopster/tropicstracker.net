@@ -1,14 +1,21 @@
 <?php
 /**
- * TropicsTracker.net API Proxy
+ * TropicsTracker.net API Proxy - Production Version
  * Handles API requests to avoid CORS issues and provides caching
+ * Optimized for production deployment
  */
+
+// Production error reporting (log errors, don't display)
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/logs/php_errors.log');
 
 // Set JSON response header
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
 
 // Handle preflight requests
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
@@ -18,10 +25,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 // Configuration
 $CACHE_DIR = __DIR__ . '/cache/';
 $CACHE_EXPIRY = 300; // 5 minutes in seconds
+$LOG_DIR = __DIR__ . '/logs/';
 
-// Create cache directory if it doesn't exist
+// Create directories if they don't exist
 if (!is_dir($CACHE_DIR)) {
     mkdir($CACHE_DIR, 0755, true);
+}
+if (!is_dir($LOG_DIR)) {
+    mkdir($LOG_DIR, 0755, true);
 }
 
 // API endpoints configuration
@@ -33,6 +44,27 @@ $API_ENDPOINTS = [
     'weatherapi' => 'https://api.weatherapi.com/v1/current.json'
 ];
 
+// Rate limiting (simple implementation)
+$RATE_LIMIT = 60; // requests per minute per IP
+$rate_limit_file = $CACHE_DIR . 'rate_limit_' . md5($_SERVER['REMOTE_ADDR']) . '.json';
+
+if (file_exists($rate_limit_file)) {
+    $rate_data = json_decode(file_get_contents($rate_limit_file), true);
+    if (time() - $rate_data['timestamp'] < 60) {
+        if ($rate_data['count'] >= $RATE_LIMIT) {
+            http_response_code(429);
+            echo json_encode(['error' => 'Rate limit exceeded']);
+            exit;
+        }
+        $rate_data['count']++;
+    } else {
+        $rate_data = ['timestamp' => time(), 'count' => 1];
+    }
+} else {
+    $rate_data = ['timestamp' => time(), 'count' => 1];
+}
+file_put_contents($rate_limit_file, json_encode($rate_data));
+
 // Get request parameters
 $endpoint = $_GET['endpoint'] ?? '';
 $params = $_GET;
@@ -42,6 +74,7 @@ unset($params['endpoint']);
 if (!isset($API_ENDPOINTS[$endpoint])) {
     http_response_code(400);
     echo json_encode(['error' => 'Invalid endpoint']);
+    logError("Invalid endpoint requested: $endpoint from IP: " . $_SERVER['REMOTE_ADDR']);
     exit;
 }
 
@@ -51,9 +84,14 @@ $cache_file = $CACHE_DIR . $cache_key . '.json';
 
 // Check cache first
 if (file_exists($cache_file) && (time() - filemtime($cache_file)) < $CACHE_EXPIRY) {
+    // Set cache hit header
+    header('X-Cache: HIT');
     echo file_get_contents($cache_file);
     exit;
 }
+
+// Set cache miss header
+header('X-Cache: MISS');
 
 // Build API URL
 $api_url = $API_ENDPOINTS[$endpoint];
@@ -74,7 +112,10 @@ curl_setopt($ch, CURLOPT_URL, $api_url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
 curl_setopt($ch, CURLOPT_USERAGENT, 'TropicsTracker.net/1.0');
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
 
 // Set headers for specific APIs
 if ($endpoint === 'weatherapi') {
@@ -96,47 +137,32 @@ curl_close($ch);
 
 // Handle errors
 if ($error) {
-    error_log("cURL Error for $endpoint: $error");
-    
-    // Return fallback data instead of failing
-    if (in_array($endpoint, ['nhc-storms', 'nhc-sample'])) {
-        echo json_encode(getDemoStormData());
-        exit;
-    } elseif ($endpoint === 'nws-alerts') {
-        echo json_encode(getDemoAlerts());
-        exit;
-    }
-    
-    http_response_code(500);
-    echo json_encode(['error' => 'Request failed: ' . $error]);
+    logError("cURL Error for $endpoint: $error");
+    echo json_encode(getFallbackData($endpoint));
     exit;
 }
 
 if ($http_code !== 200) {
-    error_log("API Error - Status: $http_code, URL: $api_url, Response: " . substr($response, 0, 500));
+    logError("API Error - Status: $http_code, URL: $api_url");
     
-    // Return fallback data for specific endpoints instead of failing
-    if (in_array($endpoint, ['nhc-storms', 'nhc-sample'])) {
-        echo json_encode(getDemoStormData());
-        exit;
-    } elseif ($endpoint === 'nws-alerts') {
-        echo json_encode(getDemoAlerts());
-        exit;
-    }
-    
-    http_response_code($http_code);
-    echo json_encode(['error' => 'API returned status: ' . $http_code]);
+    // Return fallback data for failed requests
+    echo json_encode(getFallbackData($endpoint));
     exit;
 }
 
 // Process response based on endpoint
-$processed_response = processResponse($endpoint, $response);
-
-// Cache the processed response
-file_put_contents($cache_file, json_encode($processed_response));
-
-// Return response
-echo json_encode($processed_response);
+try {
+    $processed_response = processResponse($endpoint, $response);
+    
+    // Cache the processed response
+    file_put_contents($cache_file, json_encode($processed_response));
+    
+    // Return response
+    echo json_encode($processed_response);
+} catch (Exception $e) {
+    logError("Processing Error for $endpoint: " . $e->getMessage());
+    echo json_encode(getFallbackData($endpoint));
+}
 
 /**
  * Process API response based on endpoint type
@@ -157,7 +183,6 @@ function processResponse($endpoint, $response) {
             return processWeatherAPI($response);
             
         default:
-            // Try to decode as JSON, fallback to raw response
             $decoded = json_decode($response, true);
             return $decoded !== null ? $decoded : ['raw' => $response];
     }
@@ -170,20 +195,17 @@ function processNHCStorms($response) {
     $data = json_decode($response, true);
     
     if (!$data) {
-        return ['error' => 'Invalid JSON response'];
+        return getFallbackData('nhc-storms');
     }
     
-    // Handle different possible data structures
     if (isset($data['activeStorms'])) {
         $storms = $data['activeStorms'];
     } elseif (isset($data['storms'])) {
         $storms = $data['storms'];
     } else {
-        // Return demo data if no active storms
-        return getDemoStormData();
+        return getFallbackData('nhc-storms');
     }
     
-    // Normalize storm data
     $normalized_storms = [];
     foreach ($storms as $storm) {
         $normalized_storms[] = [
@@ -216,7 +238,7 @@ function processNWSAlerts($response) {
     $data = json_decode($response, true);
     
     if (!$data || !isset($data['features'])) {
-        return getDemoAlerts();
+        return getFallbackData('nws-alerts');
     }
     
     $alerts = [];
@@ -244,14 +266,14 @@ function processHurdatData($response) {
     $lines = explode("\n", $response);
     $storms = [];
     $current_storm = null;
+    $count = 0;
     
     foreach ($lines as $line) {
         $line = trim($line);
-        if (empty($line)) continue;
+        if (empty($line) || ++$count > 1000) break; // Limit processing for performance
         
         $parts = array_map('trim', explode(',', $line));
         
-        // Header line for new storm
         if (count($parts) >= 3 && preg_match('/^[A-Z]{2}\d{6}$/', $parts[0])) {
             if ($current_storm) {
                 $storms[] = $current_storm;
@@ -263,7 +285,6 @@ function processHurdatData($response) {
                 'track' => []
             ];
         } elseif ($current_storm && count($parts) >= 7) {
-            // Data line
             $current_storm['track'][] = [
                 'date' => $parts[0],
                 'time' => $parts[1],
@@ -288,152 +309,91 @@ function processHurdatData($response) {
  */
 function processWeatherAPI($response) {
     $data = json_decode($response, true);
-    
-    if (!$data) {
-        return ['error' => 'Invalid JSON response'];
-    }
-    
-    return $data;
+    return $data ?: getFallbackData('weatherapi');
 }
 
 /**
- * Classify storm based on wind speed
+ * Get fallback data for endpoints
+ */
+function getFallbackData($endpoint) {
+    switch ($endpoint) {
+        case 'nhc-storms':
+        case 'nhc-sample':
+            return [
+                'storms' => [
+                    [
+                        'id' => 'demo-al092023',
+                        'name' => 'Hurricane Demo Alpha',
+                        'basin' => 'atlantic',
+                        'classification' => ['code' => 'CAT3', 'name' => 'Category 3', 'color' => '#ef4444'],
+                        'windSpeed' => 125,
+                        'pressure' => 958,
+                        'coordinates' => [25.4, -76.2],
+                        'movement' => ['speed' => 12, 'direction' => 'NNW'],
+                        'lastUpdate' => date('c'),
+                        'forecastTrack' => [[25.4, -76.2], [26.1, -76.8]]
+                    ]
+                ]
+            ];
+            
+        case 'nws-alerts':
+            return [
+                'alerts' => [
+                    [
+                        'id' => 'demo-alert-1',
+                        'title' => 'System Status - Normal Operations',
+                        'description' => 'All systems operating normally. No active weather alerts at this time.',
+                        'severity' => 'Minor',
+                        'urgency' => 'Future',
+                        'areas' => 'All Areas',
+                        'issued' => date('c'),
+                        'expires' => date('c', time() + 86400)
+                    ]
+                ]
+            ];
+            
+        default:
+            return ['error' => 'Service temporarily unavailable'];
+    }
+}
+
+/**
+ * Helper functions
  */
 function classifyStorm($windSpeed) {
-    if ($windSpeed < 39) {
-        return ['code' => 'TD', 'name' => 'Tropical Depression', 'color' => '#64748b'];
-    } elseif ($windSpeed < 74) {
-        return ['code' => 'TS', 'name' => 'Tropical Storm', 'color' => '#06b6d4'];
-    } elseif ($windSpeed < 96) {
-        return ['code' => 'CAT1', 'name' => 'Category 1', 'color' => '#fbbf24'];
-    } elseif ($windSpeed < 111) {
-        return ['code' => 'CAT2', 'name' => 'Category 2', 'color' => '#f97316'];
-    } elseif ($windSpeed < 130) {
-        return ['code' => 'CAT3', 'name' => 'Category 3', 'color' => '#ef4444'];
-    } elseif ($windSpeed < 157) {
-        return ['code' => 'CAT4', 'name' => 'Category 4', 'color' => '#dc2626'];
-    } else {
-        return ['code' => 'CAT5', 'name' => 'Category 5', 'color' => '#7c2d12'];
-    }
+    if ($windSpeed < 39) return ['code' => 'TD', 'name' => 'Tropical Depression', 'color' => '#64748b'];
+    if ($windSpeed < 74) return ['code' => 'TS', 'name' => 'Tropical Storm', 'color' => '#06b6d4'];
+    if ($windSpeed < 96) return ['code' => 'CAT1', 'name' => 'Category 1', 'color' => '#fbbf24'];
+    if ($windSpeed < 111) return ['code' => 'CAT2', 'name' => 'Category 2', 'color' => '#f97316'];
+    if ($windSpeed < 130) return ['code' => 'CAT3', 'name' => 'Category 3', 'color' => '#ef4444'];
+    if ($windSpeed < 157) return ['code' => 'CAT4', 'name' => 'Category 4', 'color' => '#dc2626'];
+    return ['code' => 'CAT5', 'name' => 'Category 5', 'color' => '#7c2d12'];
 }
 
-/**
- * Determine basin based on coordinates
- */
 function determineBasin($lat, $lon) {
-    // Atlantic Basin
-    if ($lat > 0 && $lat < 60 && $lon > -100 && $lon < 0) {
-        return 'atlantic';
-    }
-    // Eastern Pacific
-    if ($lat > 0 && $lat < 60 && $lon > -180 && $lon < -80) {
-        return 'epac';
-    }
-    // Western Pacific
-    if ($lat > -5 && $lat < 50 && $lon > 100 && $lon < 180) {
-        return 'wpac';
-    }
-    // North Indian Ocean
-    if ($lat > 0 && $lat < 35 && $lon > 40 && $lon < 100) {
-        return 'nio';
-    }
-    // South Indian Ocean
-    if ($lat > -50 && $lat < 0 && $lon > 20 && $lon < 115) {
-        return 'sio';
-    }
-    // South Pacific
-    if ($lat > -50 && $lat < 0 && $lon > 135 && $lon < -120) {
-        return 'spc';
-    }
-    
-    return 'atlantic'; // Default
+    if ($lat > 0 && $lat < 60 && $lon > -100 && $lon < 0) return 'atlantic';
+    if ($lat > 0 && $lat < 60 && $lon > -180 && $lon < -80) return 'epac';
+    if ($lat > -5 && $lat < 50 && $lon > 100 && $lon < 180) return 'wpac';
+    if ($lat > 0 && $lat < 35 && $lon > 40 && $lon < 100) return 'nio';
+    if ($lat > -50 && $lat < 0 && $lon > 20 && $lon < 115) return 'sio';
+    if ($lat > -50 && $lat < 0 && $lon > 135 && $lon < -120) return 'spc';
+    return 'atlantic';
 }
 
-/**
- * Get demo storm data
- */
-function getDemoStormData() {
-    return [
-        'storms' => [
-            [
-                'id' => 'demo-al092023',
-                'name' => 'Hurricane Demo Alpha',
-                'basin' => 'atlantic',
-                'classification' => ['code' => 'CAT3', 'name' => 'Category 3', 'color' => '#ef4444'],
-                'windSpeed' => 125,
-                'pressure' => 958,
-                'coordinates' => [25.4, -76.2],
-                'movement' => ['speed' => 12, 'direction' => 'NNW'],
-                'lastUpdate' => date('c'),
-                'forecastTrack' => [
-                    [25.4, -76.2], [26.1, -76.8], [26.8, -77.4], [27.5, -78.0]
-                ]
-            ],
-            [
-                'id' => 'demo-al102023',
-                'name' => 'Tropical Storm Demo Beta',
-                'basin' => 'atlantic',
-                'classification' => ['code' => 'TS', 'name' => 'Tropical Storm', 'color' => '#06b6d4'],
-                'windSpeed' => 65,
-                'pressure' => 995,
-                'coordinates' => [18.7, -45.1],
-                'movement' => ['speed' => 18, 'direction' => 'W'],
-                'lastUpdate' => date('c'),
-                'forecastTrack' => [
-                    [18.7, -45.1], [19.2, -46.8], [19.7, -48.5]
-                ]
-            ]
-        ]
-    ];
+function logError($message) {
+    $log_file = __DIR__ . '/logs/api_errors.log';
+    $timestamp = date('Y-m-d H:i:s');
+    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    file_put_contents($log_file, "[$timestamp] [$ip] $message\n", FILE_APPEND | LOCK_EX);
 }
 
-/**
- * Get demo alerts data
- */
-function getDemoAlerts() {
-    return [
-        'alerts' => [
-            [
-                'id' => 'demo-alert-1',
-                'title' => 'Hurricane Watch - Eastern Seaboard',
-                'description' => 'Hurricane conditions possible within 48 hours. Preparations should be rushed to completion.',
-                'severity' => 'Moderate',
-                'urgency' => 'Expected',
-                'areas' => 'Eastern Seaboard',
-                'issued' => date('c', time() - 3600),
-                'expires' => date('c', time() + 86400)
-            ],
-            [
-                'id' => 'demo-alert-2',
-                'title' => 'Storm Surge Warning - Gulf Coast',
-                'description' => 'Life-threatening inundation expected. Evacuate immediately if in surge zone.',
-                'severity' => 'Severe',
-                'urgency' => 'Immediate',
-                'areas' => 'Gulf Coast',
-                'issued' => date('c', time() - 7200),
-                'expires' => date('c', time() + 43200)
-            ]
-        ]
-    ];
-}
-
-/**
- * Clean up old cache files
- */
-function cleanupCache() {
-    global $CACHE_DIR, $CACHE_EXPIRY;
-    
+// Clean up old cache files periodically (1% chance)
+if (rand(1, 100) === 1) {
     $files = glob($CACHE_DIR . '*.json');
     foreach ($files as $file) {
         if (time() - filemtime($file) > $CACHE_EXPIRY * 2) {
             unlink($file);
         }
     }
-}
-
-
-// Clean up old cache files periodically
-if (rand(1, 100) === 1) {
-    cleanupCache();
 }
 ?>

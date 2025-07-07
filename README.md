@@ -200,7 +200,7 @@ This website is for educational and informational purposes only. Always consult 
 
 If you encounter any issues or have questions:
 
-1. Check the [Issues](https://github.com/yourusername/tropicstracker.net/issues) page
+1. Check the [Issues](https://github.com/zoopster/tropicstracker.net/issues) page
 2. Create a new issue if your problem isn't already reported
 3. Contact us at: admin@tropicstracker.net
 
