@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tropical Atlantic Weather Resources - TropicsTracker.net</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        .resources-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .resource-category {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        .resource-category h2 {
+            color: #2c3e50;
+            margin-top: 0;
+            font-size: 1.5em;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .resource-links {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .resource-links li {
+            margin-bottom: 10px;
+            padding-left: 20px;
+            position: relative;
+        }
+        .resource-links li:before {
+            content: "►";
+            position: absolute;
+            left: 0;
+            color: #3498db;
+            font-weight: bold;
+        }
+        .resource-links a {
+            color: #2c3e50;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        .resource-links a:hover {
+            color: #3498db;
+            text-decoration: underline;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #666;
+        }
+        @media (max-width: 768px) {
+            .resources-grid {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tropical Atlantic Weather Resources</h1>
+        
+        <div class="resources-grid">
+            <div class="resource-category">
+                <h2>Official Weather Services</h2>
+                <ul class="resource-links">
+                    <li><a href="https://www.nhc.noaa.gov/" target="_blank">NOAA National Hurricane Center</a></li>
+                    <li><a href="https://www.nhc.noaa.gov/analysis_tools.php" target="_blank">NOAA NHC Analysis Tools</a></li>
+                    <li><a href="https://www.star.nesdis.noaa.gov/GOES/index.php" target="_blank">NOAA NESDIS GOES Satellite</a></li>
+                </ul>
+            </div>
+
+            <div class="resource-category">
+                <h2>Model Guidance & Forecasting</h2>
+                <ul class="resource-links">
+                    <li><a href="https://weathernerds.org/" target="_blank">Weather Nerds TC Guidance</a></li>
+                    <li><a href="https://www.twisterdata.com/" target="_blank">Twister Data Model Guidance</a></li>
+                    <li><a href="https://www.pivotalweather.com/model.php" target="_blank">Pivotal Weather Model Guidance</a></li>
+                    <li><a href="https://www.wxcharts.com" target="_blank">WXCharts Model Guidance</a></li>
+                    <li><a href="https://weather.cod.edu/forecast/" target="_blank">College of DuPage Model Guidance</a></li>
+                    <li><a href="https://www.ecmwf.int/en/forecasts/charts/catalogue/medium-mslp-wind850?facets=undefined&time=2020051312,0,2020051312&projection=classical_west_tropic" target="_blank">ECMWF (EURO) Model Guidance</a></li>
+                </ul>
+            </div>
+
+            <div class="resource-category">
+                <h2>University Research Centers</h2>
+                <ul class="resource-links">
+                    <li><a href="https://bmcnoldy.rsmas.miami.edu/tropics/atlantic/" target="_blank">Brian McNoldy Atlantic Headquarters</a></li>
+                    <li><a href="https://bmcnoldy.rsmas.miami.edu/tropics/sectors/" target="_blank">Brian McNoldy Tropical Satellite Sectors</a></li>
+                    <li><a href="https://bmcnoldy.rsmas.miami.edu/tropics/hovmoller/" target="_blank">Brian McNoldy Infrared Hovmoller</a></li>
+                    <li><a href="https://bmcnoldy.rsmas.miami.edu/tropics/radar/" target="_blank">Brian McNoldy Past TC Radar Loops</a></li>
+                    <li><a href="https://isotherm.rsmas.miami.edu/heat/weba/atlantic.php" target="_blank">University of Miami Ocean Heat</a></li>
+                    <li><a href="https://hurricanes.ral.ucar.edu/realtime/current/" target="_blank">NCAR/RAL Tropical Cyclone Guidance</a></li>
+                </ul>
+            </div>
+
+            <div class="resource-category">
+                <h2>Florida State University</h2>
+                <ul class="resource-links">
+                    <li><a href="https://moe.met.fsu.edu/tcprob/" target="_blank">FSU Tropical Cyclone Track Probabilities</a></li>
+                    <li><a href="https://moe.met.fsu.edu/tcgengifs/" target="_blank">FSU Tropical Model Outputs</a></li>
+                    <li><a href="https://moe.met.fsu.edu/modelgen/" target="_blank">FSU Tropical Cyclone Genesis</a></li>
+                </ul>
+            </div>
+
+            <div class="resource-category">
+                <h2>Colorado State University</h2>
+                <ul class="resource-links">
+                    <li><a href="https://rammb-data.cira.colostate.edu/tc_realtime/" target="_blank">Colorado State RAMMB TC Tracking</a></li>
+                    <li><a href="https://rammb.cira.colostate.edu/ramsdis/online/tropical.asp" target="_blank">Colorado State RAMMB Floaters</a></li>
+                    <li><a href="https://rammb-slider.cira.colostate.edu/?sat=goes-16&z=0&im=12&ts=1&st=0&et=0&speed=130&motion=loop&map=1&lat=0&opacity%5B0%5D=1&hidden%5B0%5D=0&pause=0&slider=-1&hide_controls=0&mouse_draw=0&follow_feature=0&follow_hide=0&s=rammb-slider&sec=full_disk&p%5B0%5D=geocolor&x=10848&y=10848" target="_blank">Colorado State RAMMB GOES-16 Viewer</a></li>
+                </ul>
+            </div>
+
+            <div class="resource-category">
+                <h2>Other Universities</h2>
+                <ul class="resource-links">
+                    <li><a href="https://www.atmos.albany.edu/facstaff/abrammer/" target="_blank">Albany GFS/ EURO Models/ Ensembles</a></li>
+                    <li><a href="https://www.atmos.albany.edu/facstaff/tang/tcguidance/" target="_blank">Albany Tropical Cyclone Guidance</a></li>
+                    <li><a href="https://www.atmos.albany.edu/student/kgriffin/maps/tropatl.html" target="_blank">Albany Tropical Atlantic Model Maps</a></li>
+                    <li><a href="https://www.meteo.psu.edu/~fxg1/ewalltropatl.html" target="_blank">Penn State Tropical E-Wall</a></li>
+                </ul>
+            </div>
+
+            <div class="resource-category">
+                <h2>Government Research</h2>
+                <ul class="resource-links">
+                    <li><a href="https://www.emc.ncep.noaa.gov/gmb/tpm/emchurr/tcgen/" target="_blank">NOAA NCEP/EMC Cyclogenesis Tracking</a></li>
+                    <li><a href="https://www.emc.ncep.noaa.gov/gc_wmb/vxt/HWRF/index.php" target="_blank">NOAA NCEP/EMC HWRF Model</a></li>
+                    <li><a href="https://www.nrlmry.navy.mil/TC.html" target="_blank">Navy NRL TC Page</a></li>
+                    <li><a href="https://manati.star.nesdis.noaa.gov/datasets/ASCATData.php" target="_blank">ASCAT Ocean Surface Winds METOP-A</a></li>
+                    <li><a href="https://manati.star.nesdis.noaa.gov/datasets/ASCATBData.php" target="_blank">ASCAT Ocean Surface Winds METOP-B</a></li>
+                </ul>
+            </div>
+
+            <div class="resource-category">
+                <h2>Specialized Resources</h2>
+                <ul class="resource-links">
+                    <li><a href="https://intlmeteodatabase.carrd.co/" target="_blank">International Meteorology Database</a></li>
+                    <li><a href="https://wxmaps.org/pix/hurpot#ATL" target="_blank">COLA Max Potential Hurricane Intensity</a></li>
+                    <li><a href="https://mikeventrice.weebly.com/" target="_blank">Michael Ventrice Waves / MJO Maps</a></li>
+                    <li><a href="https://www.tropicalatlantic.com/" target="_blank">TropicalAtlantic.com Analysis / Recon</a></li>
+                    <li><a href="https://cyclonicwx.com/" target="_blank">CyclonicWX Tropical Resources</a></li>
+                </ul>
+            </div>
+
+            <div class="resource-category">
+                <h2>International Models</h2>
+                <ul class="resource-links">
+                    <li><a href="https://www.woweather.com/cgi-bin/expertcharts?LANG=us&MENU=0000000000&CONT=mamk&MODELL=gfs&MODELLTYP=1&BASE=-&VAR=pslv&HH=0&LOOP=1&ZOOM=0&ARCHIV=0&RES=0&WMO=" target="_blank">Weather Online Model Guidance</a></li>
+                    <li><a href="https://meteocentre.com/numerical-weather-prediction/map-explorer.php?lang=en&map=na&run=00&mod=ukmet&stn=PNM&hh=144&comp=1&run2=00&mod2=ukmet&stn2=PNM&hh2=144&fixhh=1&stn2_type=prog&date_type=dateo&mode=latest&yyyy=latest&mm=latest&dd=latest" target="_blank">UKMet Model Guidance/ Analysis/ Sat</a></li>
+                </ul>
+            </div>
+
+            <div class="resource-category">
+                <h2>Data Archives</h2>
+                <ul class="resource-links">
+                    <li><a href="ftps://ftp.nhc.noaa.gov/atcf/" target="_blank">NOAA NHC ATCF Directory</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>© 2025 TropicsTracker.net - Professional Hurricane Tracking and Analysis</p>
+            <p>All external links open in new windows. Please respect the terms of use for each resource.</p>
+        </div>
+    </div>
+</body>
+</html>
