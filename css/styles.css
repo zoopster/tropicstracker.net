@@ -64,6 +64,13 @@ body {
 a { color: var(--accent-bright); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
+/* Visible keyboard focus for all interactive elements. */
+:focus-visible {
+    outline: 2px solid var(--accent-bright);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
 .skip-link {
     position: absolute;
     left: -999px;
@@ -439,10 +446,60 @@ a:hover { text-decoration: underline; }
 .sat-error i { font-size: 1.8rem; color: var(--accent); display: block; margin-bottom: 0.5rem; }
 .sat-caption { color: var(--text-dim); font-size: 0.85rem; margin: 0.6rem 0 0; }
 
+/* ---------- Learn ---------- */
+.edu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+.edu-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.4rem;
+}
+.edu-wide { margin-bottom: 1rem; }
+.edu-card h2 {
+    margin: 0 0 0.6rem;
+    font-size: 1.1rem;
+    color: var(--accent-bright);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.edu-card p { margin: 0.5rem 0; color: var(--text-muted); }
+.edu-rule {
+    font-size: 1.05rem;
+    color: var(--text) !important;
+    padding: 0.6rem 0.9rem;
+    background: var(--accent-soft);
+    border-radius: 8px;
+}
+.edu-list { margin: 0.5rem 0 0 1.2rem; color: var(--text-muted); }
+.edu-list li { margin-bottom: 0.35rem; }
+.edu-foot { font-size: 0.88rem; color: var(--text-dim) !important; margin-top: 0.9rem; }
+
+.scale-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+.scale-item {
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--border-soft);
+    border-radius: 8px;
+    padding: 0.7rem 0.85rem;
+}
+.scale-cat { font-weight: 700; font-size: 0.95rem; }
+.scale-winds { font-size: 0.85rem; color: var(--text); margin: 0.15rem 0 0.35rem; }
+.scale-item p { margin: 0; font-size: 0.82rem; color: var(--text-dim); }
+
 /* ---------- Alert banner ---------- */
 .alert-banner {
-    position: sticky;
-    top: var(--header-h);
+    position: relative;
     z-index: 90;
     border-bottom: 1px solid var(--border);
 }
