@@ -9,7 +9,7 @@ This is the **v2 static-first rebuild**. It is a pure static site (HTML, CSS, va
 Built in short sprints. See the PRD: [docs/2026-06-22-tropicstracker-prd.md](docs/2026-06-22-tropicstracker-prd.md).
 
 - [x] **Sprint 0** — Foundation: static shell, hash routing, dark theme, Resources hub, Netlify config.
-- [ ] **Sprint 1** — Live storm tracking map (NHC ArcGIS REST).
+- [x] **Sprint 1** — Live storm tracking map: Leaflet map with active storms, cones, tracks, and a storm list, from NHC/JTWC data via the Esri Living Atlas service.
 - [ ] **Sprint 2** — Local radar (RainViewer + Iowa Mesonet NEXRAD).
 - [ ] **Sprint 3** — GOES satellite (RAMMB SLIDER + NESDIS).
 - [ ] **Sprint 4** — NWS alerts tied to location.
