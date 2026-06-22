@@ -1,4 +1,5 @@
 import { sectionHead, esc } from "../ui.js";
+import { cssVar, whenLeafletReady, createMap } from "../map.js";
 import {
     fetchStormLayers,
     summarizeStorms,
@@ -12,20 +13,6 @@ const REFRESH_MS = 10 * 60 * 1000; // auto-refresh every 10 minutes
 let map = null;
 let dataLayers = null; // L.LayerGroup of all rendered features
 let refreshTimer = null;
-
-function cssVar(name) {
-    return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "#888";
-}
-
-// Wait for the deferred Leaflet script if navigation beats it.
-function whenLeafletReady() {
-    return new Promise((resolve) => {
-        if (window.L) return resolve();
-        const t = setInterval(() => {
-            if (window.L) { clearInterval(t); resolve(); }
-        }, 50);
-    });
-}
 
 export default {
     id: "track",
@@ -62,16 +49,7 @@ export default {
         clearInterval(refreshTimer);
         if (map) { map.remove(); map = null; dataLayers = null; }
 
-        map = L.map(root.querySelector("#storm-map"), {
-            center: [20, -55],
-            zoom: 3,
-            worldCopyJump: true,
-        });
-        L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-            attribution:
-                '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-            maxZoom: 18,
-        }).addTo(map);
+        map = createMap(root.querySelector("#storm-map"), { center: [20, -55], zoom: 3 });
 
         renderLegend(root.querySelector("#map-legend"));
 

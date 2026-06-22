@@ -360,6 +360,39 @@ a:hover { text-decoration: underline; }
     #storm-map { height: 58vh; order: 1; }
 }
 
+/* ---------- Radar ---------- */
+.radar-toolbar { gap: 0.6rem; }
+.radar-spacer { flex: 1; }
+.radar-src {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+.radar-search-form { display: inline-flex; gap: 0.4rem; align-items: center; }
+.radar-opacity {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+.radar-opacity input[type="range"] { width: 110px; accent-color: var(--accent); }
+#radar-map {
+    height: 70vh;
+    min-height: 460px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: #0b1220;
+    z-index: 0;
+}
+@media (max-width: 760px) {
+    .radar-spacer { display: none; }
+    #radar-map { height: 60vh; }
+}
+
 /* ---------- Footer ---------- */
 .site-footer {
     border-top: 1px solid var(--border);
