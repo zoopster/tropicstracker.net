@@ -83,7 +83,7 @@ See `docs/2026-06-22-tropicstracker-prd.md` for the full PRD.
 - [x] **Sprint 1** — Live storm tracking map: Leaflet + Carto dark tiles, NHC/JTWC data via Esri Living Atlas (cone, forecast/observed track, category-colored points, current-position markers, watches/warnings), storm list panel, popups, refresh + auto-refresh, empty/error states. CORS spike passed.
 - [x] **Sprint 2** — Local radar: animated RainViewer loop (`api.rainviewer.com`), NWS NEXRAD toggle (Iowa Mesonet `mesonet.agron.iastate.edu`), geolocation, place search (Open-Meteo geocoding), opacity control. Shared map helper (`js/map.js`) extracted and reused by Track. All CORS-clean.
 - [x] **Sprint 3** — GOES satellite: native NESDIS still-image viewer (`cdn.star.nesdis.noaa.gov`), 5 tropical regions (GOES-19 East + GOES-18 West), GeoColor/Band 13 IR/Band 09 water vapor, auto-refresh, deep links to SLIDER + NESDIS loops. **Note: RAMMB SLIDER sends `X-Frame-Options: SAMEORIGIN` and cannot be iframed; deep-link out to it instead.**
-- [ ] **Sprint 4** — NWS alerts tied to location.
+- [x] **Sprint 4** — NWS alerts tied to location: site-wide alert banner (`js/alerts-banner.js`) from `api.weather.gov/alerts/active`, severity-colored, geolocation or place search, expandable cards; alert polygons overlaid on the Track map. Shared location module (`js/location.js`, localStorage + `tt-location-change` event) keeps banner and map in sync. **Note: the alerts API rejects `limit` combined with `point`. Many alerts are zone-based with no inline geometry, so only inline-polygon alerts appear on the map.**
 - [ ] **Sprint 5** — Learn content + accessibility and performance polish.
 
 MVP = Sprints 0 + 1 + 2.

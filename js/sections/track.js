@@ -7,12 +7,16 @@ import {
     knotsToMph,
     compassDir,
 } from "../data/storms.js";
+import { fetchAlerts, severityMeta } from "../data/alerts.js";
+import { getStoredLocation, LOCATION_EVENT } from "../location.js";
 
 const REFRESH_MS = 10 * 60 * 1000; // auto-refresh every 10 minutes
 
 let map = null;
 let dataLayers = null; // L.LayerGroup of all rendered features
+let alertLayer = null; // L.LayerGroup of alert polygons for the saved location
 let refreshTimer = null;
+let onLocationChange = null;
 
 export default {
     id: "track",
@@ -47,7 +51,7 @@ export default {
 
         // Clean up a prior instance if the user navigated away and back.
         clearInterval(refreshTimer);
-        if (map) { map.remove(); map = null; dataLayers = null; }
+        if (map) { map.remove(); map = null; dataLayers = null; alertLayer = null; }
 
         map = createMap(root.querySelector("#storm-map"), { center: [20, -55], zoom: 3 });
 
@@ -64,8 +68,43 @@ export default {
             if (document.getElementById("storm-map")) load(root);
             else clearInterval(refreshTimer);
         }, REFRESH_MS);
+
+        // Overlay active-alert polygons for the user's saved location, and keep
+        // them in sync when the location changes (e.g. via the alert banner).
+        loadAlerts();
+        if (onLocationChange) window.removeEventListener(LOCATION_EVENT, onLocationChange);
+        onLocationChange = () => loadAlerts();
+        window.addEventListener(LOCATION_EVENT, onLocationChange);
     },
 };
+
+async function loadAlerts() {
+    if (!map) return;
+    if (alertLayer) { map.removeLayer(alertLayer); alertLayer = null; }
+
+    const loc = getStoredLocation();
+    if (!loc) return;
+
+    try {
+        const alerts = await fetchAlerts({ lat: loc.lat, lon: loc.lon });
+        const withGeom = alerts.filter((a) => a.geometry);
+        if (!withGeom.length) return;
+
+        const group = L.layerGroup();
+        withGeom.forEach((a) => {
+            const color = cssVar(severityMeta(a.severity).color);
+            L.geoJSON(a.geometry, {
+                style: { color, weight: 2, fillColor: color, fillOpacity: 0.18 },
+            })
+                .bindPopup(`<b>${esc(a.event)}</b><br>${esc(a.areaDesc)}`)
+                .addTo(group);
+        });
+        group.addTo(map);
+        alertLayer = group;
+    } catch (err) {
+        console.warn("track alert overlay failed:", err);
+    }
+}
 
 async function load(root) {
     const updated = root.querySelector("#storm-updated");
