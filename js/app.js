@@ -5,6 +5,7 @@ import radar from "./sections/radar.js";
 import satellite from "./sections/satellite.js";
 import resources from "./sections/resources.js";
 import learn from "./sections/learn.js";
+import { initAlertBanner } from "./alerts-banner.js";
 
 const sections = [track, radar, satellite, resources, learn];
 const registry = new Map(sections.map((s) => [s.id, s]));
@@ -77,6 +78,9 @@ function init() {
         location.replace(`#${DEFAULT}`);
     }
     renderRoute();
+
+    // Site-wide alert banner (independent of the active section).
+    initAlertBanner();
 }
 
 init();
