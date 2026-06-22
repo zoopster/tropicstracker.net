@@ -11,7 +11,7 @@ Built in short sprints. See the PRD: [docs/2026-06-22-tropicstracker-prd.md](doc
 - [x] **Sprint 0** — Foundation: static shell, hash routing, dark theme, Resources hub, Netlify config.
 - [x] **Sprint 1** — Live storm tracking map: Leaflet map with active storms, cones, tracks, and a storm list, from NHC/JTWC data via the Esri Living Atlas service.
 - [x] **Sprint 2** — Local radar: animated RainViewer loop, official NWS NEXRAD (Iowa Mesonet) toggle, geolocation, place search, and opacity control.
-- [ ] **Sprint 3** — GOES satellite (RAMMB SLIDER + NESDIS).
+- [x] **Sprint 3** — GOES satellite: NESDIS still imagery (5 tropical regions across GOES-East/West, GeoColor/IR/water vapor) with auto-refresh, plus deep links to the SLIDER interactive viewer and NESDIS animated loops.
 - [ ] **Sprint 4** — NWS alerts tied to location.
 - [ ] **Sprint 5** — Learn content + accessibility/perf polish.
 

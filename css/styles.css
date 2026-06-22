@@ -393,6 +393,45 @@ a:hover { text-decoration: underline; }
     #radar-map { height: 60vh; }
 }
 
+/* ---------- Satellite ---------- */
+.seg {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.25rem;
+}
+.seg-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 7px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+}
+.seg-btn:hover { color: var(--text); background: var(--accent-soft); }
+.seg-btn.active { background: var(--accent); color: #fff; }
+
+.sat-stage {
+    position: relative;
+    background: #0b1220;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+    min-height: 360px;
+}
+.sat-img { display: block; width: 100%; height: auto; }
+.sat-loading, .sat-error { padding: 3rem 1rem; text-align: center; color: var(--text-dim); }
+.sat-error i { font-size: 1.8rem; color: var(--accent); display: block; margin-bottom: 0.5rem; }
+.sat-caption { color: var(--text-dim); font-size: 0.85rem; margin: 0.6rem 0 0; }
+
 /* ---------- Footer ---------- */
 .site-footer {
     border-top: 1px solid var(--border);
