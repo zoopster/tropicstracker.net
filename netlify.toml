@@ -1,0 +1,32 @@
+# Netlify configuration for TropicsTracker.net (pure static, no build step).
+
+[build]
+  publish = "."
+  command = ""
+
+# Keep archived v1 code out of the public site.
+[[redirects]]
+  from = "/legacy/*"
+  to = "/"
+  status = 301
+  force = true
+
+# Security headers for all routes.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(self)"
+
+# Long cache for static assets (filenames are stable for now; revisit with hashing).
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
