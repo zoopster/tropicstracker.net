@@ -54,7 +54,8 @@ To add a section: create the module, import it in `js/app.js`, add it to the `se
 
 | Need | Source | Method |
 | --- | --- | --- |
-| Active storms, cone, track, watches | NHC ArcGIS REST (`mapservices.weather.noaa.gov/tropical`) | fetch JSON / Esri Leaflet |
+| Active storms, cone, track, watches | **Esri Living Atlas "Active Hurricanes"** FeatureServer (`services9.arcgis.com/RHVPKKiFTONKtxq3/.../Active_Hurricanes_v1`) | `fetch` GeoJSON (`f=geojson`) — used in Sprint 1 |
+| (alt) per-storm NHC layers | NHC ArcGIS REST (`mapservices.weather.noaa.gov/tropical/NHC_tropical_weather`) | fetch JSON; per-slot (AT1-5, EP1-5, CP1-5), heavier |
 | Alerts and warnings | `api.weather.gov/alerts/active` | fetch JSON |
 | Animated radar | RainViewer API (`api.rainviewer.com`) | Leaflet tile overlay |
 | Official NEXRAD radar | Iowa Environmental Mesonet (IEM) | Leaflet WMS/tiles |
@@ -78,7 +79,7 @@ Or use the Claude preview tooling with `.claude/launch.json` (server name `stati
 See `docs/2026-06-22-tropicstracker-prd.md` for the full PRD.
 
 - [x] **Sprint 0** — Foundation: shell, routing, theme, Resource Hub, Netlify config.
-- [ ] **Sprint 1** — Live storm tracking map (NHC ArcGIS REST). Start with a CORS spike.
+- [x] **Sprint 1** — Live storm tracking map: Leaflet + Carto dark tiles, NHC/JTWC data via Esri Living Atlas (cone, forecast/observed track, category-colored points, current-position markers, watches/warnings), storm list panel, popups, refresh + auto-refresh, empty/error states. CORS spike passed.
 - [ ] **Sprint 2** — Local radar (RainViewer + IEM NEXRAD, geolocation).
 - [ ] **Sprint 3** — GOES satellite (RAMMB SLIDER + NESDIS).
 - [ ] **Sprint 4** — NWS alerts tied to location.
