@@ -12,11 +12,24 @@ import { getStoredLocation, LOCATION_EVENT } from "../location.js";
 
 const REFRESH_MS = 10 * 60 * 1000; // auto-refresh every 10 minutes
 
+// Basin quick-switcher. `match` is the basin name produced by summarizeStorms();
+// `bounds` is the view to fly to. "All" fits to whatever storms are active.
+const BASINS = [
+    { id: "all", label: "All", match: null, bounds: null },
+    { id: "atlantic", label: "Atlantic", match: "Atlantic", bounds: [[5, -100], [45, -15]] },
+    { id: "epac", label: "E Pacific", match: "Eastern Pacific", bounds: [[5, -160], [35, -90]] },
+    { id: "cpac", label: "C Pacific", match: "Central Pacific", bounds: [[0, -180], [35, -130]] },
+    { id: "wpac", label: "W Pacific", match: "Western Pacific", bounds: [[0, 100], [40, 180]] },
+    { id: "io", label: "Indian", match: "Indian Ocean", bounds: [[-35, 40], [30, 110]] },
+];
+
 let map = null;
 let dataLayers = null; // L.LayerGroup of all rendered features
 let alertLayer = null; // L.LayerGroup of alert polygons for the saved location
 let refreshTimer = null;
 let onLocationChange = null;
+let basin = "all";
+let stormBounds = []; // [lat,lon] of current-position markers from the last draw
 
 export default {
     id: "track",
@@ -30,6 +43,13 @@ export default {
             `<div class="track-toolbar">
                 <button class="btn" id="storm-refresh"><i class="fas fa-rotate-right" aria-hidden="true"></i> Refresh</button>
                 <span class="updated" id="storm-updated">Loading...</span>
+             </div>
+             <div class="track-toolbar">
+                <div class="seg" id="basin-seg" role="group" aria-label="Basin">
+                    ${BASINS.map((b) =>
+                        `<button class="seg-btn${b.id === "all" ? " active" : ""}" data-basin="${b.id}">${b.label}<span class="seg-count" id="basin-count-${b.id}"></span></button>`
+                    ).join("")}
+                </div>
              </div>
              <div class="track-layout">
                 <aside class="storm-panel" aria-label="Active storms">
@@ -52,20 +72,34 @@ export default {
         // Clean up a prior instance if the user navigated away and back.
         clearInterval(refreshTimer);
         if (map) { map.remove(); map = null; dataLayers = null; alertLayer = null; }
+        basin = "all";
+        stormBounds = [];
 
         map = createMap(root.querySelector("#storm-map"), { center: [20, -55], zoom: 3 });
 
         renderLegend(root.querySelector("#map-legend"));
 
         const refreshBtn = root.querySelector("#storm-refresh");
-        refreshBtn.addEventListener("click", () => load(root));
+        refreshBtn.addEventListener("click", () => load(root, { fit: true }));
 
-        await load(root);
+        // Basin quick-switcher (event delegation on the segmented control).
+        root.querySelector("#basin-seg").addEventListener("click", (e) => {
+            const btn = e.target.closest("[data-basin]");
+            if (!btn) return;
+            basin = btn.dataset.basin;
+            root.querySelectorAll("#basin-seg .seg-btn").forEach((b) =>
+                b.classList.toggle("active", b.dataset.basin === basin)
+            );
+            applyView();
+        });
+
+        await load(root, { fit: true });
 
         clearInterval(refreshTimer);
         refreshTimer = setInterval(() => {
-            // Only refresh while the Track section is on screen.
-            if (document.getElementById("storm-map")) load(root);
+            // Only refresh while the Track section is on screen; don't re-fit
+            // the view on background refreshes so the user's pan/zoom is kept.
+            if (document.getElementById("storm-map")) load(root, { fit: false });
             else clearInterval(refreshTimer);
         }, REFRESH_MS);
 
@@ -106,7 +140,7 @@ async function loadAlerts() {
     }
 }
 
-async function load(root) {
+async function load(root, { fit = false } = {}) {
     const updated = root.querySelector("#storm-updated");
     const listEl = root.querySelector("#storm-list");
     const btn = root.querySelector("#storm-refresh");
@@ -119,6 +153,8 @@ async function load(root) {
 
         drawLayers(layers, storms);
         renderList(listEl, storms);
+        updateBasinCounts(root, storms);
+        if (fit) applyView();
 
         const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
         if (updated) updated.textContent = storms.length
@@ -194,9 +230,29 @@ function drawLayers(layers, storms) {
 
     group.addTo(map);
     dataLayers = group;
+    stormBounds = bounds;
+}
 
-    if (bounds.length) {
-        map.fitBounds(bounds, { padding: [60, 60], maxZoom: 6 });
+// Move the map to match the selected basin: "All" fits to active storms,
+// a specific basin flies to its fixed bounding box.
+function applyView() {
+    if (!map) return;
+    const b = BASINS.find((x) => x.id === basin) || BASINS[0];
+    if (b.id === "all") {
+        if (stormBounds.length) map.fitBounds(stormBounds, { padding: [60, 60], maxZoom: 6 });
+    } else {
+        map.fitBounds(b.bounds, { padding: [20, 20] });
+    }
+}
+
+function updateBasinCounts(root, storms) {
+    for (const b of BASINS) {
+        const el = root.querySelector(`#basin-count-${b.id}`);
+        if (!el) continue;
+        const n = b.match
+            ? storms.filter((s) => s.basin === b.match).length
+            : storms.length;
+        el.textContent = n ? ` ${n}` : "";
     }
 }
 

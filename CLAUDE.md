@@ -88,6 +88,9 @@ See `docs/2026-06-22-tropicstracker-prd.md` for the full PRD.
 
 All six PRD sprints are complete.
 
+### Post-plan enhancements
+- **Basin quick-switcher** (issue #10): Track toolbar segmented control (All, Atlantic, E/C/W Pacific, Indian) with live active-storm counts; flies the map to a basin's bounds, "All" fits to active storms. Auto-refresh no longer re-fits the view. See `BASINS` in `js/sections/track.js`.
+
 MVP = Sprints 0 + 1 + 2.
 
 ## Do not

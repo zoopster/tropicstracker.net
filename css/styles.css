@@ -430,6 +430,7 @@ a:hover { text-decoration: underline; }
 }
 .seg-btn:hover { color: var(--text); background: var(--accent-soft); }
 .seg-btn.active { background: var(--accent); color: #fff; }
+.seg-count { font-weight: 700; opacity: 0.85; }
 
 .sat-stage {
     position: relative;
