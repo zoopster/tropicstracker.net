@@ -30,9 +30,36 @@ export function rainviewerTileUrl(host, path) {
     return `${host}${path}/256/{z}/{x}/{y}/4/1_1.png`;
 }
 
-// IEM NEXRAD base reflectivity (N0Q) composite, latest available, as XYZ tiles.
-export const IEM_NEXRAD_URL =
-    "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png";
+// IEM NEXRAD base reflectivity (N0Q) US composite as time-stamped XYZ tiles.
+// The `ridge::USCOMP-N0Q-<YYYYMMDDHHMM>` (UTC, 5-minute steps) form supports
+// animation; tiles for unpublished/old times simply 404 and render blank.
+const pad = (n) => String(n).padStart(2, "0");
+
+function utcStamp(ms) {
+    const d = new Date(ms);
+    return (
+        d.getUTCFullYear() +
+        pad(d.getUTCMonth() + 1) +
+        pad(d.getUTCDate()) +
+        pad(d.getUTCHours()) +
+        pad(d.getUTCMinutes())
+    );
+}
+
+// XYZ tile template for a single NEXRAD frame at a given time (ms epoch).
+export function nexradTileUrl(timeMs) {
+    return `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/ridge::USCOMP-N0Q-${utcStamp(timeMs)}/{z}/{x}/{y}.png`;
+}
+
+// Ordered list (oldest to newest) of recent 5-minute NEXRAD frame times.
+// `lagMin` skips the most recent marks, which may not be published yet.
+export function nexradFrameTimes(count = 12, lagMin = 5) {
+    const step = 5 * 60 * 1000;
+    const latest = Math.floor((Date.now() - lagMin * 60 * 1000) / step) * step;
+    const times = [];
+    for (let i = count - 1; i >= 0; i--) times.push(latest - i * step);
+    return times;
+}
 
 export const IEM_ATTRIBUTION =
     'Radar &copy; <a href="https://mesonet.agron.iastate.edu/">Iowa Environmental Mesonet</a> (NWS NEXRAD)';

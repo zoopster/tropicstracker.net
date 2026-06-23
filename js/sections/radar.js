@@ -1,9 +1,10 @@
-import { sectionHead, esc } from "../ui.js";
+import { sectionHead } from "../ui.js";
 import { whenLeafletReady, createMap } from "../map.js";
 import {
     fetchRainviewerFrames,
     rainviewerTileUrl,
-    IEM_NEXRAD_URL,
+    nexradTileUrl,
+    nexradFrameTimes,
     IEM_ATTRIBUTION,
     RAINVIEWER_ATTRIBUTION,
     geocode,
@@ -13,14 +14,17 @@ const FRAME_MS = 500; // animation step
 const CONUS = { center: [39, -98], zoom: 4 };
 
 let map = null;
-let frameLayers = []; // one tile layer per RainViewer frame
-let frames = [];
-let iemLayer = null;
 let attribution = null;
+let source = "rainviewer";
+
+// Generic frame model shared by both sources.
+let frames = [];        // [{ time(ms), forecast }] oldest -> newest
+let frameLayers = [];   // one L.tileLayer per frame
 let current = 0;
 let opacity = 0.7;
 let playing = false;
 let animTimer = null;
+let loadToken = 0;      // guards against overlapping source switches
 
 export default {
     id: "radar",
@@ -59,17 +63,15 @@ export default {
 
         stopAnim();
         if (map) { map.remove(); map = null; }
-        frameLayers = []; frames = []; iemLayer = null; current = 0; playing = false;
+        frames = []; frameLayers = []; current = 0; playing = false; source = "rainviewer";
 
         map = createMap(root.querySelector("#radar-map"), CONUS);
         attribution = map.attributionControl;
 
         wireControls(root);
+        locate(root, { silent: true }); // never blocks rendering
 
-        // Try to center on the user, but never block rendering on it.
-        locate(root, { silent: true });
-
-        await loadRainviewer(root);
+        await loadSource(root, "rainviewer");
     },
 };
 
@@ -79,11 +81,10 @@ function wireControls(root) {
     root.querySelector("#radar-opacity").addEventListener("input", (e) => {
         opacity = Number(e.target.value) / 100;
         if (frameLayers[current]) frameLayers[current].setOpacity(opacity);
-        if (iemLayer) iemLayer.setOpacity(opacity);
     });
 
     root.querySelectorAll('input[name="radar-src"]').forEach((r) =>
-        r.addEventListener("change", (e) => setSource(root, e.target.value))
+        r.addEventListener("change", (e) => loadSource(root, e.target.value))
     );
 
     root.querySelector("#radar-locate").addEventListener("click", () => locate(root, { silent: false }));
@@ -94,28 +95,52 @@ function wireControls(root) {
     });
 }
 
-async function loadRainviewer(root) {
+function clearFrames() {
+    stopAnim();
+    frameLayers.forEach((l) => map.removeLayer(l));
+    frameLayers = [];
+    frames = [];
+    current = 0;
+}
+
+// Build the frame set for a source and start the loop. Guarded by a token so a
+// rapid source switch does not leave a half-built previous source on the map.
+async function loadSource(root, src) {
+    source = src;
+    const token = ++loadToken;
     const timeEl = root.querySelector("#radar-time");
+    clearFrames();
+    timeEl.textContent = "Loading radar...";
+
     try {
-        const data = await fetchRainviewerFrames();
-        frames = data.frames;
+        if (src === "nexrad") {
+            attribution.removeAttribution(RAINVIEWER_ATTRIBUTION);
+            attribution.addAttribution(IEM_ATTRIBUTION);
+            frames = nexradFrameTimes().map((t) => ({ time: t, forecast: false }));
+            frameLayers = frames.map((f) =>
+                L.tileLayer(nexradTileUrl(f.time), { opacity: 0, zIndex: 5, tileSize: 256 })
+            );
+        } else {
+            attribution.removeAttribution(IEM_ATTRIBUTION);
+            attribution.addAttribution(RAINVIEWER_ATTRIBUTION);
+            const data = await fetchRainviewerFrames();
+            if (token !== loadToken) return; // superseded by a newer switch
+            frames = data.frames.map((f) => ({ time: f.time * 1000, forecast: f.forecast }));
+            frameLayers = frames.map((f, i) =>
+                L.tileLayer(rainviewerTileUrl(data.host, data.frames[i].path), { opacity: 0, zIndex: 5, tileSize: 256 })
+            );
+        }
+
+        if (token !== loadToken) return;
         if (!frames.length) throw new Error("no frames");
 
-        frameLayers = frames.map((f) =>
-            L.tileLayer(rainviewerTileUrl(data.host, f.path), {
-                opacity: 0,
-                zIndex: 5,
-                tileSize: 256,
-            }).addTo(map)
-        );
-        attribution.addAttribution(RAINVIEWER_ATTRIBUTION);
-
-        current = frames.length - 1; // newest observed frame
+        frameLayers.forEach((l) => l.addTo(map));
+        current = frames.length - 1; // newest frame
         showFrame(root, current);
-        play(root); // autoplay the loop
+        play(root);
     } catch (err) {
         console.error("radar load failed:", err);
-        timeEl.textContent = "Radar unavailable. Try NWS NEXRAD or refresh.";
+        timeEl.textContent = "Radar unavailable. Try the other source or refresh.";
     }
 }
 
@@ -123,11 +148,10 @@ function showFrame(root, i) {
     frameLayers.forEach((l, idx) => l.setOpacity(idx === i ? opacity : 0));
     current = i;
     const f = frames[i];
-    if (f) {
-        const time = new Date(f.time * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-        root.querySelector("#radar-time").textContent =
-            `${f.forecast ? "Forecast" : "Observed"} ${time}`;
-    }
+    if (!f) return;
+    const time = new Date(f.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const tag = source === "nexrad" ? "NEXRAD" : f.forecast ? "Forecast" : "Observed";
+    root.querySelector("#radar-time").textContent = `${tag} ${time}`;
 }
 
 function play(root) {
@@ -135,9 +159,7 @@ function play(root) {
     playing = true;
     setPlayBtn(root, true);
     stopAnim();
-    animTimer = setInterval(() => {
-        showFrame(root, (current + 1) % frameLayers.length);
-    }, FRAME_MS);
+    animTimer = setInterval(() => showFrame(root, (current + 1) % frameLayers.length), FRAME_MS);
 }
 
 function pause(root) {
@@ -157,25 +179,6 @@ function setPlayBtn(root, isPlaying) {
         : '<i class="fas fa-play" aria-hidden="true"></i> Play';
 }
 
-function setSource(root, src) {
-    if (src === "nexrad") {
-        pause(root);
-        frameLayers.forEach((l) => l.setOpacity(0));
-        if (!iemLayer) {
-            iemLayer = L.tileLayer(IEM_NEXRAD_URL, { opacity, zIndex: 5 }).addTo(map);
-            attribution.addAttribution(IEM_ATTRIBUTION);
-        } else {
-            iemLayer.addTo(map);
-        }
-        root.querySelector("#radar-time").textContent = "NWS NEXRAD composite (latest)";
-        root.querySelector("#radar-play").disabled = true;
-    } else {
-        if (iemLayer) map.removeLayer(iemLayer);
-        root.querySelector("#radar-play").disabled = false;
-        if (frameLayers.length) { showFrame(root, current); play(root); }
-    }
-}
-
 function locate(root, { silent }) {
     const msg = root.querySelector("#radar-msg");
     if (!navigator.geolocation) {
@@ -184,10 +187,7 @@ function locate(root, { silent }) {
     }
     if (!silent) msg.textContent = "Locating...";
     navigator.geolocation.getCurrentPosition(
-        (pos) => {
-            map.setView([pos.coords.latitude, pos.coords.longitude], 7);
-            msg.textContent = "";
-        },
+        (pos) => { map.setView([pos.coords.latitude, pos.coords.longitude], 7); msg.textContent = ""; },
         () => { if (!silent) msg.textContent = "Location unavailable. Search instead."; },
         { timeout: 8000 }
     );
